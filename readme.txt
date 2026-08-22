@@ -1,0 +1,72 @@
+=== GetViaMsg Paywall ===
+Contributors: wdft
+Tags: paywall, monetization, sms, subscription, content
+Requires at least: 6.3
+Tested up to: 6.6
+Requires PHP: 7.4
+Stable tag: 0.1.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+Integrates GetViaMsg (gvm.js) paywalls into WordPress with per-article pricing and server-side signature verification.
+
+== Description ==
+
+GetViaMsg Paywall adds SMS-based paywalls to your WordPress content, powered by the
+[GetViaMsg gvm.js SDK](https://esm.sh/@wdft/gvm-sdk@latest/gvm.js).
+
+Features:
+
+* Global settings (tenant, secret, environment, currency, defaults) via the Settings API.
+* Per-article controls in the classic editor meta box and the Gutenberg sidebar.
+* `[gvm]` shortcode and a server-rendered Gutenberg block for wrapping content.
+* `[gvm-protected-content]` shortcode with server-side `gvm-signature` verification (HMAC-SHA256).
+* Configurable hide strategies (hide / blur / mangle-blur) with sections, percent or words.
+* gvm.js is enqueued as an ES module (WordPress 6.3+) only when a paywall is present.
+
+== Installation ==
+
+1. Upload the `gvm-wp-plugin` folder to `/wp-content/plugins/`, or install the zip via Plugins → Add New → Upload Plugin.
+2. Activate the plugin.
+3. Go to Settings → GetViaMsg and enter your tenant and secret.
+
+== Usage ==
+
+**Per-article paywall**
+
+Edit a post (enabled post type) and enable the paywall in the "GetViaMsg Paywall"
+meta box or Gutenberg sidebar. The whole content is wrapped in a paywall.
+
+**Shortcode**
+
+`[gvm price="0.75" template="paywall" hide_strategy="hide" hide_sections="6"]Your content[/gvm]`
+
+**Server-side protected content**
+
+`[gvm-protected-content reference="my-article"]Secret content[/gvm-protected-content]`
+
+Content is only rendered after gvm.js redirects back with a valid `gvm-signature`.
+
+**Block**
+
+Add the "GetViaMsg Paywall" block and nest content inside it.
+
+== Frequently Asked Questions ==
+
+= Where do I get a tenant and secret? =
+
+From your GetViaMsg provider (WDFT).
+
+= Does the plugin support currencies other than PLN? =
+
+gvm.js currently supports PLN only.
+
+= Can I self-host gvm.js? =
+
+Yes. Run `build.sh vendor /path/to/gvm-sdk/dist/gvm.js` to bundle a copy in
+`assets/gvm.js`, which the plugin then prefers over the CDN.
+
+== Changelog ==
+
+= 0.1.0 =
+* Initial release.

@@ -1,0 +1,19 @@
+/* Gutenberg editor styles for gvm-wp-plugin */
+
+.gvm-block-placeholder {
+	border: 2px dashed #ffb903;
+	border-radius: 8px;
+	padding: 16px;
+	background: rgba(255, 185, 3, 0.06);
+}
+
+.gvm-block-notice {
+	margin: 0 0 8px;
+	color: #8a6d00;
+	font-weight: 600;
+}
+
+.gvm-panel .components-panel__row {
+	display: block;
+	margin-bottom: 12px;
+}
