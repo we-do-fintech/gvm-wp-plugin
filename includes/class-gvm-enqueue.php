@@ -143,6 +143,11 @@ class Gvm_Enqueue {
 			$attrs['data-gvm-cond'] = $condition;
 		}
 
+		$analytics = Gvm_Settings::analytics();
+		if ( ! empty( $analytics ) ) {
+			$attrs['data-gvm-analytics'] = implode( ',', $analytics );
+		}
+
 		return $attrs;
 	}
 }

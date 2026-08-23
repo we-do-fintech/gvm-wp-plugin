@@ -78,13 +78,40 @@ class Gvm_Download {
 	}
 
 	/**
-	 * The download endpoint URL for a post (SDK appends signature params).
+	 * The download endpoint URL for a post + file (SDK appends signature params).
 	 *
-	 * @param int $post_id Post ID.
+	 * @param int    $post_id  Post ID.
+	 * @param string $filename Filename (empty = first file in the post's list).
 	 * @return string
 	 */
-	public static function download_url( $post_id ) {
-		return home_url( '/?gvm_download=' . absint( $post_id ) );
+	public static function download_url( $post_id, $filename = '' ) {
+		$url = home_url( '/?gvm_download=' . absint( $post_id ) );
+
+		if ( '' !== $filename ) {
+			$url = add_query_arg( 'file', rawurlencode( $filename ), $url );
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Deterministic per-file reference: <base>-<filename-slug>.
+	 *
+	 * Both the renderer and the endpoint use this, so a payment for one file
+	 * cannot be replayed against another file.
+	 *
+	 * @param string $base_reference Post reference.
+	 * @param string $filename       Filename.
+	 * @return string
+	 */
+	public static function file_reference( $base_reference, $filename ) {
+		$slug = sanitize_title_with_dashes( pathinfo( $filename, PATHINFO_FILENAME ) );
+
+		if ( '' === $slug ) {
+			$slug = 'file';
+		}
+
+		return Gvm_Post::sanitize_reference( $base_reference . '-' . $slug );
 	}
 
 	/**
@@ -212,7 +239,14 @@ class Gvm_Download {
 			self::deny();
 		}
 
-		$filename = (string) get_post_meta( $post_id, Gvm_Post::DOWNLOAD, true );
+		// The file comes from the URL (block/shortcode), or falls back to the
+		// single "Download file" meta.
+		$filename = isset( $_GET['file'] ) ? sanitize_file_name( wp_unslash( $_GET['file'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		if ( '' === $filename ) {
+			$filename = sanitize_file_name( (string) get_post_meta( $post_id, Gvm_Post::DOWNLOAD, true ) );
+		}
+
 		if ( '' === $filename ) {
 			self::deny();
 		}
@@ -221,10 +255,11 @@ class Gvm_Download {
 			self::deny();
 		}
 
-		$config    = Gvm_Post::get_config( $post_id );
-		$params    = Gvm_Signature::from_request();
+		$config   = Gvm_Post::get_config( $post_id );
+		$params   = Gvm_Signature::from_request();
+		$expected = self::file_reference( $config['reference'], $filename );
 
-		if ( ! hash_equals( $config['reference'], $params['reference'] ) ) {
+		if ( ! hash_equals( $expected, $params['reference'] ) ) {
 			self::deny();
 		}
 

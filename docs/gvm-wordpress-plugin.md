@@ -28,6 +28,7 @@ After activation, go to **Settings → GetViaMsg** and fill in the fields:
 | Default price | Fallback price when an article has no own price |
 | JS callback | Optional JS function called after payment |
 | Post types | Content types where the paywall controls are available |
+| Analytics | Emits gvm.js analytics events to GTM (`dl`), GA4 (`gtag`) and/or a custom `CustomEvent` (`custom`) |
 | Payment template | Look of the payment window (QR + SMS) — editable HTML |
 | Paywall template | Look of the content blocker — editable HTML |
 | Download template | Look of the file download button — editable HTML |
@@ -59,6 +60,19 @@ Each article (on enabled content types) has a **GetViaMsg Paywall** panel
 | Hide sections / percent / words | How much content to show before the block |
 | Reference | Unique identifier (defaults to the article slug or ID) |
 | Condition | Optional condition for showing the paywall |
+
+---
+
+## Blocks
+
+Two Gutenberg blocks are available:
+
+| Block | Purpose |
+| --- | --- |
+| **GetViaMsg — Paid content** | Wraps content in a paywall (hide strategy) |
+| **GetViaMsg — Paid download** | Sells a single file download (with an upload button) |
+
+Place multiple "Paid download" blocks in one article to offer a list of files.
 
 ---
 
@@ -102,10 +116,12 @@ Attributes: `price`, `hide-strategy`, `hide-percent`, `hide-sections`, `hide-wor
 ### `[gvm-download]` — file download
 
 ```
-[gvm-download price="1.99"]
+[gvm-download file="report.pdf" price="1.99"]
 ```
 
-Uses the file set in the "Download file" field of the current article.
+Downloads a single file (`file` = filename in `uploads/gvm/`). Without `file`, it
+uses the article's "Download file" field. Place one shortcode (or one paywall
+block in "Download file" mode) per file to offer a list of downloads in one article.
 
 ---
 

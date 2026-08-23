@@ -33,6 +33,7 @@ class Gvm_Settings {
 	const OPTION_TEMPLATE_PAYMENT = 'gvm_template_payment';
 	const OPTION_TEMPLATE_PAYWALL = 'gvm_template_paywall';
 	const OPTION_TEMPLATE_DOWNLOAD = 'gvm_template_download';
+	const OPTION_ANALYTICS        = 'gvm_analytics';
 
 	/**
 	 * Named environments understood by gvm.js (data-gvm-env).
@@ -57,6 +58,7 @@ class Gvm_Settings {
 		self::OPTION_TEMPLATE_PAYMENT => '',
 		self::OPTION_TEMPLATE_PAYWALL => '',
 		self::OPTION_TEMPLATE_DOWNLOAD => '',
+		self::OPTION_ANALYTICS        => array(),
 	);
 
 	/**
@@ -159,6 +161,26 @@ class Gvm_Settings {
 	 */
 	public static function template_download() {
 		return (string) self::get( self::OPTION_TEMPLATE_DOWNLOAD );
+	}
+
+	/**
+	 * Valid analytics tracker tokens (data-gvm-analytics).
+	 *
+	 * @return string[]
+	 */
+	public static function analytics_trackers() {
+		return array( 'dl', 'gtag', 'custom' );
+	}
+
+	/**
+	 * Enabled analytics trackers.
+	 *
+	 * @return string[]
+	 */
+	public static function analytics() {
+		$trackers = array_filter( (array) self::get( self::OPTION_ANALYTICS ) );
+
+		return array_values( array_intersect( $trackers, self::analytics_trackers() ) );
 	}
 
 	/**
@@ -361,6 +383,16 @@ class Gvm_Settings {
 			)
 		);
 
+		register_setting(
+			self::GROUP,
+			self::OPTION_ANALYTICS,
+			array(
+				'type'              => 'array',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_analytics' ),
+				'default'           => self::$defaults[ self::OPTION_ANALYTICS ],
+			)
+		);
+
 		add_settings_section(
 			'gvm_main',
 			__( 'GetViaMsg configuration', 'gvm-wp' ),
@@ -375,6 +407,7 @@ class Gvm_Settings {
 		add_settings_field( 'gvm_default_price', __( 'Default price', 'gvm-wp' ), array( __CLASS__, 'field_default_price' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_callback', __( 'JS callback', 'gvm-wp' ), array( __CLASS__, 'field_callback' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_post_types', __( 'Post types', 'gvm-wp' ), array( __CLASS__, 'field_post_types' ), self::PAGE, 'gvm_main' );
+		add_settings_field( 'gvm_analytics', __( 'Analytics', 'gvm-wp' ), array( __CLASS__, 'field_analytics' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_template_payment', __( 'Payment template', 'gvm-wp' ), array( __CLASS__, 'field_template_payment' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_template_paywall', __( 'Paywall template', 'gvm-wp' ), array( __CLASS__, 'field_template_paywall' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_template_download', __( 'Download template', 'gvm-wp' ), array( __CLASS__, 'field_template_download' ), self::PAGE, 'gvm_main' );
@@ -475,6 +508,19 @@ class Gvm_Settings {
 		$types     = array_intersect( $types, array_keys( $available ) );
 
 		return empty( $types ) ? array( 'post' ) : array_values( $types );
+	}
+
+	/**
+	 * Sanitize the analytics trackers (multi-select).
+	 *
+	 * @param mixed $value Raw input.
+	 * @return string[]
+	 */
+	public static function sanitize_analytics( $value ) {
+		$trackers = is_array( $value ) ? $value : array();
+		$trackers = array_map( 'sanitize_key', $trackers );
+
+		return array_values( array_intersect( $trackers, self::analytics_trackers() ) );
 	}
 
 	/**
@@ -598,6 +644,32 @@ class Gvm_Settings {
 				esc_html( $type->labels->singular_name )
 			);
 		}
+	}
+
+	/**
+	 * Analytics trackers field.
+	 *
+	 * @return void
+	 */
+	public static function field_analytics() {
+		$selected = self::analytics();
+		$labels   = array(
+			'dl'     => __( 'Google Tag Manager (dataLayer)', 'gvm-wp' ),
+			'gtag'   => __( 'Google Analytics 4 (gtag)', 'gvm-wp' ),
+			'custom' => __( 'Custom event (CustomEvent)', 'gvm-wp' ),
+		);
+
+		foreach ( self::analytics_trackers() as $tracker ) {
+			printf(
+				'<label style="display:block;margin-bottom:4px;"><input type="checkbox" name="%1$s[]" value="%2$s" %3$s /> %4$s</label>',
+				esc_attr( self::OPTION_ANALYTICS ),
+				esc_attr( $tracker ),
+				checked( in_array( $tracker, $selected, true ), true, false ),
+				esc_html( isset( $labels[ $tracker ] ) ? $labels[ $tracker ] : $tracker )
+			);
+		}
+
+		echo '<p class="description">' . esc_html__( 'Emits gvm.js analytics events (data-gvm-analytics) to the selected trackers. Leave empty to disable.', 'gvm-wp' ) . '</p>';
 	}
 
 	/**

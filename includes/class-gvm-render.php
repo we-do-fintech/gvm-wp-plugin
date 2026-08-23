@@ -118,7 +118,7 @@ class Gvm_Render {
 
 		$stats = self::reading_stats( $content );
 
-		if ( ! empty( $config['download'] ) ) {
+		if ( '' !== $config['download'] ) {
 			// Download strategy: teaser + a "download" trigger. The endpoint
 			// serves the gated file after signature verification.
 			return self::teaser( $content, $config )
@@ -126,11 +126,12 @@ class Gvm_Render {
 					'',
 					array(
 						'price'           => $config['price'],
-						'reference'       => $config['reference'],
+						'reference'       => Gvm_Download::file_reference( $config['reference'], $config['download'] ),
 						'metadata_title'  => get_the_title( $post ),
 						'cond'            => isset( $config['cond'] ) ? $config['cond'] : '',
 						'download'        => true,
-						'download_to'     => Gvm_Download::download_url( $post->ID ),
+						'download_to'     => Gvm_Download::download_url( $post->ID, $config['download'] ),
+						'filename'        => $config['download'],
 						'reading_words'   => $stats['words'],
 						'reading_minutes' => $stats['minutes'],
 					)
@@ -409,6 +410,7 @@ class Gvm_Render {
 			'reading-time'  => isset( $args['reading_minutes'] ) ? (int) $args['reading_minutes'] : 0,
 			'reading-words' => isset( $args['reading_words'] ) ? (int) $args['reading_words'] : 0,
 			'reference'     => esc_html( (string) $args['reference'] ),
+			'filename'      => isset( $args['filename'] ) ? esc_html( (string) $args['filename'] ) : '',
 		);
 
 		foreach ( $bindings as $key => $value ) {

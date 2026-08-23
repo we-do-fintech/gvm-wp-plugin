@@ -24,8 +24,9 @@ server-side signature verification. Plain PHP, no framework.
 | Environment / API URL | `gvm_env_url` | A named environment (`demo`, `local`, `prod`, `qa`, `dev`) maps to `data-gvm-env`; a full URL maps to `data-gvm-endpoint`. |
 
 Optional defaults: currency (`gvm_currency`, default `PLN`), default price
-(`gvm_default_price`), JS callback
-(`gvm_callback`), and enabled post types (`gvm_post_types`, multi-select).
+(`gvm_default_price`), JS callback (`gvm_callback`), enabled post types
+(`gvm_post_types`, multi-select), and analytics trackers (`gvm_analytics`,
+`dl` / `gtag` / `custom`, mapped to `data-gvm-analytics`).
 
 ## Usage
 
@@ -68,18 +69,22 @@ Secret content revealed only after payment.
 The content is only rendered when the request carries a valid `gvm-signature`
 (see below). Otherwise a paywall is rendered in its place.
 
-### Gutenberg block
+### Gutenberg blocks
 
-Add the **GetViaMsg Paywall** block and nest content inside it. The block is
-server-rendered to the same `data-gvm-*` wrapper markup.
+Two server-rendered blocks are registered:
+
+- **GetViaMsg — Paid content** (`gvm/paywall`) — wraps content in a paywall (hide strategy).
+- **GetViaMsg — Paid download** (`gvm/download`) — sells a single file download, with an upload button.
 
 ### Download (gated file)
 
 Set a **Download file** on a post (a filename stored in the protected
 `wp-content/uploads/gvm/` directory — blocked from direct HTTP access by a
 generated `.htaccess`). The plugin renders a download trigger; after payment the
-`?gvm_download=<post_id>` endpoint verifies the signature and streams the file
-with `Content-Disposition: attachment`. Shortcode: `[gvm-download price="1.99"]`.
+`?gvm_download=<post_id>&file=<filename>` endpoint verifies the signature
+(per-file reference) and streams the file with `Content-Disposition: attachment`.
+The same download can be embedded anywhere with the `gvm/download` block (with an
+upload button) or the `[gvm-download file="x.pdf"]` shortcode.
 
 ## Signature verification
 

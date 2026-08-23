@@ -14,7 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Gvm_Block {
 
-	const BLOCK_NAME = 'gvm/paywall';
+	const BLOCK_NAME          = 'gvm/paywall';
+	const DOWNLOAD_BLOCK_NAME = 'gvm/download';
 
 	/**
 	 * Register hooks.
@@ -27,7 +28,7 @@ class Gvm_Block {
 	}
 
 	/**
-	 * Register the server-rendered block.
+	 * Register the server-rendered blocks.
 	 *
 	 * @return void
 	 */
@@ -50,10 +51,24 @@ class Gvm_Block {
 				),
 			)
 		);
+
+		register_block_type(
+			self::DOWNLOAD_BLOCK_NAME,
+			array(
+				'api_version'     => 3,
+				'editor_script'   => 'gvm-editor',
+				'render_callback' => array( __CLASS__, 'render_download_block' ),
+				'attributes'      => array(
+					'file'  => array( 'type' => 'string', 'default' => '' ),
+					'price' => array( 'type' => 'string', 'default' => '' ),
+					'cond'  => array( 'type' => 'string', 'default' => '' ),
+				),
+			)
+		);
 	}
 
 	/**
-	 * Server-side block render.
+	 * Server-side "paid content" block render.
 	 *
 	 * @param array  $attributes Block attributes.
 	 * @param string $content    Inner blocks HTML.
@@ -71,6 +86,35 @@ class Gvm_Block {
 				'reference'      => isset( $attributes['reference'] ) ? $attributes['reference'] : '',
 				'metadata_title' => isset( $attributes['title'] ) ? $attributes['title'] : '',
 				'cond'           => isset( $attributes['cond'] ) ? $attributes['cond'] : '',
+			)
+		);
+	}
+
+	/**
+	 * Server-side "paid download" block render.
+	 *
+	 * @param array $attributes Block attributes.
+	 * @return string
+	 */
+	public static function render_download_block( $attributes ) {
+		$post = get_post();
+		$file = sanitize_file_name( (string) ( isset( $attributes['file'] ) ? $attributes['file'] : '' ) );
+
+		if ( ! $post || '' === $file ) {
+			return '';
+		}
+
+		$config = Gvm_Post::get_config( $post->ID );
+
+		return Gvm_Render::paywall(
+			'',
+			array(
+				'price'       => isset( $attributes['price'] ) ? $attributes['price'] : '',
+				'reference'   => Gvm_Download::file_reference( $config['reference'], $file ),
+				'cond'        => isset( $attributes['cond'] ) ? $attributes['cond'] : '',
+				'download'    => true,
+				'download_to' => Gvm_Download::download_url( $post->ID, $file ),
+				'filename'    => $file,
 			)
 		);
 	}

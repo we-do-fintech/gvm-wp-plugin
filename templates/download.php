@@ -29,7 +29,7 @@
 	}
 </style>
 <div class="gvm-download-box">
-	<p>Download this file after a one-time payment.</p>
+	<p>Download <strong><span data-gvm-bind-filename></span></strong> after a one-time payment.</p>
 	<button data-gvm-bind-pay>
 		Download for
 		<span data-gvm-bind-price></span>

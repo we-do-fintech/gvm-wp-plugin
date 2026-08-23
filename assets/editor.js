@@ -15,7 +15,6 @@
 
 	var el = wp.element.createElement;
 	var __ = wp.i18n.__;
-	var useRef = wp.element.useRef;
 	var useState = wp.element.useState;
 
 	var registerBlockType = wp.blocks.registerBlockType;
@@ -28,7 +27,6 @@
 	var TextControl = wp.components.TextControl;
 	var SelectControl = wp.components.SelectControl;
 	var ToggleControl = wp.components.ToggleControl;
-	var Button = wp.components.Button;
 
 	var PluginDocumentSettingPanel = (wp.editPost && wp.editPost.PluginDocumentSettingPanel) || (wp.editor && wp.editor.PluginDocumentSettingPanel);
 	var registerPlugin = wp.plugins && wp.plugins.registerPlugin;
@@ -126,7 +124,7 @@
 	 * ------------------------------------------------------------------ */
 
 	registerBlockType('gvm/paywall', {
-		title: __('GetViaMsg Paywall', 'gvm-wp'),
+		title: __('GetViaMsg — Paid content', 'gvm-wp'),
 		description: __('Wrap content in a GetViaMsg paywall.', 'gvm-wp'),
 		icon: 'lock',
 		category: 'common',
@@ -157,6 +155,61 @@
 		}
 	});
 
+	registerBlockType('gvm/download', {
+		title: __('GetViaMsg — Paid download', 'gvm-wp'),
+		description: __('Sell a file download via GetViaMsg.', 'gvm-wp'),
+		icon: 'download',
+		category: 'common',
+		supports: { html: false, reusable: false },
+		attributes: {
+			file: { type: 'string', default: '' },
+			price: { type: 'string', default: '' },
+			cond: { type: 'string', default: '' }
+		},
+		edit: function (props) {
+			var blockProps = useBlockProps();
+			var atts = props.attributes;
+			var setAttributes = props.setAttributes;
+
+			return el('div', blockProps,
+				el(InspectorControls, {},
+					el(PanelBody, { title: __('Paywall settings', 'gvm-wp'), initialOpen: true },
+						el(TextControl, {
+							label: __('Price', 'gvm-wp'),
+							type: 'number',
+							step: '0.01',
+							min: '0.01',
+							max: '10',
+							value: atts.price,
+							onChange: function (value) { setAttributes({ price: value }); }
+						}),
+						el(TextControl, {
+							label: __('File', 'gvm-wp'),
+							value: atts.file,
+							onChange: function (value) { setAttributes({ file: value }); },
+							help: __('Filename in uploads/gvm/.', 'gvm-wp')
+						}),
+						el(DownloadUpload, {
+							onUploaded: function (filename) { setAttributes({ file: filename }); }
+						}),
+						el(TextControl, {
+							label: __('Condition', 'gvm-wp'),
+							value: atts.cond,
+							onChange: function (value) { setAttributes({ cond: value }); },
+							help: __('Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp')
+						})
+					)
+				),
+				el('div', { className: 'gvm-block-placeholder' },
+					el('p', { className: 'gvm-block-notice' }, __('Paid file download via GetViaMsg.', 'gvm-wp'))
+				)
+			);
+		},
+		save: function () {
+			return null;
+		}
+	});
+
 	/* ------------------------------------------------------------------ *
 	 * Document sidebar panel (per-article post meta)
 	 * ------------------------------------------------------------------ */
@@ -169,7 +222,6 @@
 	}
 
 	function DownloadUpload(props) {
-		var inputRef = useRef(null);
 		var status = useState('');
 		var setStatus = status[1];
 		var uploadCfg = (config.upload || {});
@@ -202,8 +254,10 @@
 		}
 
 		return el('div', { className: 'gvm-upload-row' },
-			el('input', { type: 'file', ref: inputRef, style: { display: 'none' }, onChange: onChange }),
-			el(Button, { isSecondary: true, onClick: function () { inputRef.current.click(); } }, __('Upload file', 'gvm-wp')),
+			el('label', { className: 'components-button is-secondary gvm-upload-label' },
+				__('Upload file', 'gvm-wp'),
+				el('input', { type: 'file', style: { display: 'none' }, onChange: onChange })
+			),
 			status[0] ? el('p', { className: 'description' }, status[0]) : null
 		);
 	}

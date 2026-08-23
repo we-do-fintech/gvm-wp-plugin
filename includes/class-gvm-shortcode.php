@@ -98,14 +98,20 @@ class Gvm_Shortcode {
 	}
 
 	/**
-	 * [gvm-download] shortcode: a gated file download (uses the current post's
-	 * _gvm_download file).
+	 * [gvm-download] shortcode: a gated file download.
 	 *
-	 * @param array $atts Attributes.
+	 * With a `file` attribute it gates that single file; without it, it uses the
+	 * first file from the post's "Download file" list.
+	 *
+	 * @param array $atts Attributes (file, price, cond).
 	 * @return string
 	 */
 	public static function shortcode_download( $atts ) {
-		$atts = shortcode_atts( self::atts(), self::normalize_atts( $atts ), 'gvm-download' );
+		$atts = shortcode_atts(
+			array_merge( self::atts(), array( 'file' => '' ) ),
+			self::normalize_atts( $atts ),
+			'gvm-download'
+		);
 
 		$post = get_post();
 
@@ -113,14 +119,27 @@ class Gvm_Shortcode {
 			return '';
 		}
 
+		$config   = Gvm_Post::get_config( $post->ID );
+		$filename = sanitize_file_name( (string) $atts['file'] );
+
+		if ( '' === $filename ) {
+			$files    = $config['download'];
+			$filename = isset( $files[0] ) ? $files[0] : '';
+		}
+
+		if ( '' === $filename ) {
+			return '';
+		}
+
 		return Gvm_Render::paywall(
 			'',
 			array(
 				'price'       => $atts['price'],
-				'reference'   => $atts['reference'],
+				'reference'   => Gvm_Download::file_reference( $config['reference'], $filename ),
 				'cond'        => $atts['cond'],
 				'download'    => true,
-				'download_to' => Gvm_Download::download_url( $post->ID ),
+				'download_to' => Gvm_Download::download_url( $post->ID, $filename ),
+				'filename'    => $filename,
 			)
 		);
 	}
