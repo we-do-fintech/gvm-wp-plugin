@@ -24,7 +24,7 @@ server-side signature verification. Plain PHP, no framework.
 | Environment / API URL | `gvm_env_url` | A named environment (`demo`, `local`, `prod`, `qa`, `dev`) maps to `data-gvm-env`; a full URL maps to `data-gvm-endpoint`. |
 
 Optional defaults: currency (`gvm_currency`, default `PLN`), default price
-(`gvm_default_price`), default template (`gvm_default_template`), JS callback
+(`gvm_default_price`), JS callback
 (`gvm_callback`), and enabled post types (`gvm_post_types`, multi-select).
 
 ## Usage

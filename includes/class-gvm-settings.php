@@ -28,7 +28,6 @@ class Gvm_Settings {
 	const OPTION_ENV_URL         = 'gvm_env_url';
 	const OPTION_CURRENCY        = 'gvm_currency';
 	const OPTION_DEFAULT_PRICE   = 'gvm_default_price';
-	const OPTION_DEFAULT_TEMPLATE = 'gvm_default_template';
 	const OPTION_CALLBACK        = 'gvm_callback';
 	const OPTION_POST_TYPES      = 'gvm_post_types';
 	const OPTION_TEMPLATE_PAYMENT = 'gvm_template_payment';
@@ -40,7 +39,7 @@ class Gvm_Settings {
 	 *
 	 * @var string[]
 	 */
-	private static $envs = array( 'demo', 'local', 'prod', 'qa', 'dev' );
+	private static $envs = array( 'demo', 'dev', 'qa', 'prod', 'local' );
 
 	/**
 	 * Option defaults. Never contains a secret value; secrets are entered by the admin.
@@ -53,7 +52,6 @@ class Gvm_Settings {
 		self::OPTION_ENV_URL          => 'demo',
 		self::OPTION_CURRENCY         => 'PLN',
 		self::OPTION_DEFAULT_PRICE    => '0.99',
-		self::OPTION_DEFAULT_TEMPLATE => 'paywall',
 		self::OPTION_CALLBACK         => '',
 		self::OPTION_POST_TYPES       => array( 'post' ),
 		self::OPTION_TEMPLATE_PAYMENT => '',
@@ -119,14 +117,12 @@ class Gvm_Settings {
 	}
 
 	/**
-	 * Default paywall template slug.
+	 * Paywall template slug (single, bundled template).
 	 *
 	 * @return string
 	 */
 	public static function default_template() {
-		$template = sanitize_key( (string) self::get( self::OPTION_DEFAULT_TEMPLATE ) );
-
-		return '' === $template ? 'paywall' : $template;
+		return 'paywall';
 	}
 
 	/**
@@ -317,16 +313,6 @@ class Gvm_Settings {
 
 		register_setting(
 			self::GROUP,
-			self::OPTION_DEFAULT_TEMPLATE,
-			array(
-				'type'              => 'string',
-				'sanitize_callback' => array( __CLASS__, 'sanitize_template' ),
-				'default'           => self::$defaults[ self::OPTION_DEFAULT_TEMPLATE ],
-			)
-		);
-
-		register_setting(
-			self::GROUP,
 			self::OPTION_CALLBACK,
 			array(
 				'type'              => 'string',
@@ -387,7 +373,6 @@ class Gvm_Settings {
 		add_settings_field( 'gvm_env_url', __( 'Environment / API URL', 'gvm-wp' ), array( __CLASS__, 'field_env_url' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_currency', __( 'Currency', 'gvm-wp' ), array( __CLASS__, 'field_currency' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_default_price', __( 'Default price', 'gvm-wp' ), array( __CLASS__, 'field_default_price' ), self::PAGE, 'gvm_main' );
-		add_settings_field( 'gvm_default_template', __( 'Default template', 'gvm-wp' ), array( __CLASS__, 'field_default_template' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_callback', __( 'JS callback', 'gvm-wp' ), array( __CLASS__, 'field_callback' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_post_types', __( 'Post types', 'gvm-wp' ), array( __CLASS__, 'field_post_types' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_template_payment', __( 'Payment template', 'gvm-wp' ), array( __CLASS__, 'field_template_payment' ), self::PAGE, 'gvm_main' );
@@ -402,7 +387,7 @@ class Gvm_Settings {
 	 */
 	public static function section_main() {
 		echo '<p>' . esc_html__( 'These values are rendered as data-gvm-* attributes on the body tag when a paywall is present.', 'gvm-wp' ) . '</p>';
-		echo '<p>' . esc_html__( 'Per-article controls (price, template, hide strategy, condition) appear on every enabled post type below: a "GetViaMsg Paywall" meta box in the classic editor, and a sidebar panel in the block editor.', 'gvm-wp' ) . '</p>';
+		echo '<p>' . esc_html__( 'Per-article controls (price, hide strategy, redirect, download, condition) appear on every enabled post type below: a "GetViaMsg Paywall" meta box in the classic editor, and a sidebar panel in the block editor.', 'gvm-wp' ) . '</p>';
 	}
 
 	/**
@@ -426,7 +411,7 @@ class Gvm_Settings {
 	}
 
 	/**
-	 * Sanitize the environment URL (named environment or absolute URL).
+	 * Sanitize the environment (named environment only).
 	 *
 	 * @param mixed $value Raw input.
 	 * @return string
@@ -438,7 +423,7 @@ class Gvm_Settings {
 			return $value;
 		}
 
-		return esc_url_raw( $value );
+		return 'demo';
 	}
 
 	/**
@@ -463,18 +448,6 @@ class Gvm_Settings {
 		$price = (float) wp_unslash( $value );
 
 		return (string) max( 0.01, min( 10, $price ) );
-	}
-
-	/**
-	 * Sanitize the default template slug.
-	 *
-	 * @param mixed $value Raw input.
-	 * @return string
-	 */
-	public static function sanitize_template( $value ) {
-		$template = sanitize_key( (string) wp_unslash( $value ) );
-
-		return '' === $template ? 'paywall' : $template;
 	}
 
 	/**
@@ -549,12 +522,20 @@ class Gvm_Settings {
 	 * @return void
 	 */
 	public static function field_env_url() {
-		printf(
-			'<input type="text" name="%1$s" value="%2$s" class="regular-text" placeholder="demo" />',
-			esc_attr( self::OPTION_ENV_URL ),
-			esc_attr( (string) self::get( self::OPTION_ENV_URL ) )
-		);
-		echo '<p class="description">' . esc_html__( 'Named environment (demo, local, prod, qa, dev) maps to data-gvm-env. A full URL maps to data-gvm-endpoint (requires gvm-sdk support).', 'gvm-wp' ) . '</p>';
+		$current = (string) self::get( self::OPTION_ENV_URL );
+
+		echo '<select name="' . esc_attr( self::OPTION_ENV_URL ) . '">';
+		foreach ( self::$envs as $env ) {
+			printf(
+				'<option value="%1$s" %2$s>%3$s</option>',
+				esc_attr( $env ),
+				selected( $current, $env, false ),
+				esc_html( $env )
+			);
+		}
+		echo '</select>';
+
+		echo '<p class="description">' . esc_html__( 'Named environment, mapped to data-gvm-env.', 'gvm-wp' ) . '</p>';
 	}
 
 	/**
@@ -583,20 +564,6 @@ class Gvm_Settings {
 			esc_attr( (string) self::default_price() )
 		);
 		echo '<p class="description">' . esc_html__( 'Maps to data-gvm-price (0.01-10).', 'gvm-wp' ) . '</p>';
-	}
-
-	/**
-	 * Default template field.
-	 *
-	 * @return void
-	 */
-	public static function field_default_template() {
-		printf(
-			'<input type="text" name="%1$s" value="%2$s" class="regular-text" />',
-			esc_attr( self::OPTION_DEFAULT_TEMPLATE ),
-			esc_attr( self::default_template() )
-		);
-		echo '<p class="description">' . esc_html__( 'Base name of the paywall <template> (default: paywall).', 'gvm-wp' ) . '</p>';
 	}
 
 	/**

@@ -26,7 +26,6 @@ After activation, go to **Settings → GetViaMsg** and fill in the fields:
 | Environment / API URL | Environment: `demo`, `local`, `prod`, `qa`, `dev`, or a custom API URL |
 | Currency | Currency (currently `PLN`) |
 | Default price | Fallback price when an article has no own price |
-| Default template | Paywall template name |
 | JS callback | Optional JS function called after payment |
 | Post types | Content types where the paywall controls are available |
 | Payment template | Look of the payment window (QR + SMS) — editable HTML |
