@@ -16,12 +16,14 @@ class Gvm_Post {
 
 	const ENABLED       = '_gvm_enabled';
 	const PRICE         = '_gvm_price';
-	const TEMPLATE      = '_gvm_template';
 	const HIDE_STRATEGY = '_gvm_hide_strategy';
 	const HIDE_PERCENT  = '_gvm_hide_percent';
 	const HIDE_SECTIONS = '_gvm_hide_sections';
 	const HIDE_WORDS    = '_gvm_hide_words';
 	const REFERENCE     = '_gvm_reference';
+	const COND          = '_gvm_cond';
+	const REDIRECT      = '_gvm_redirect';
+	const DOWNLOAD      = '_gvm_download';
 
 	/**
 	 * Register hooks.
@@ -44,10 +46,6 @@ class Gvm_Post {
 				'default' => false,
 			),
 			self::PRICE         => array(
-				'type'    => 'number',
-				'default' => null,
-			),
-			self::TEMPLATE      => array(
 				'type'    => 'string',
 				'default' => '',
 			),
@@ -68,6 +66,18 @@ class Gvm_Post {
 				'default' => 0,
 			),
 			self::REFERENCE     => array(
+				'type'    => 'string',
+				'default' => '',
+			),
+			self::COND          => array(
+				'type'    => 'string',
+				'default' => '',
+			),
+			self::REDIRECT      => array(
+				'type'    => 'boolean',
+				'default' => false,
+			),
+			self::DOWNLOAD      => array(
 				'type'    => 'string',
 				'default' => '',
 			),
@@ -118,8 +128,6 @@ class Gvm_Post {
 				$price = (float) $value;
 
 				return $price <= 0 ? '' : max( 0.01, min( 10, $price ) );
-			case self::TEMPLATE:
-				return sanitize_key( (string) $value );
 			case self::HIDE_STRATEGY:
 				$strategy = (string) $value;
 
@@ -132,9 +140,28 @@ class Gvm_Post {
 				return max( 0, (int) $value );
 			case self::REFERENCE:
 				return self::sanitize_reference( $value );
+			case self::COND:
+				return self::sanitize_cond( $value );
+			case self::REDIRECT:
+				return (bool) $value;
+			case self::DOWNLOAD:
+				return sanitize_file_name( (string) $value );
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Sanitize a gvm condition (data-gvm-cond). Strips HTML tags while
+	 * preserving the DSL operators (>, <, quotes, parentheses).
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string
+	 */
+	public static function sanitize_cond( $value ) {
+		$cond = wp_kses( (string) $value, array() );
+
+		return trim( $cond );
 	}
 
 	/**
@@ -179,21 +206,20 @@ class Gvm_Post {
 		$config = array(
 			'enabled'       => (bool) get_post_meta( $post_id, self::ENABLED, true ),
 			'price'         => get_post_meta( $post_id, self::PRICE, true ),
-			'template'      => (string) get_post_meta( $post_id, self::TEMPLATE, true ),
+			'template'      => Gvm_Settings::default_template(),
 			'hide_strategy' => (string) get_post_meta( $post_id, self::HIDE_STRATEGY, true ),
 			'hide_percent'  => (int) get_post_meta( $post_id, self::HIDE_PERCENT, true ),
 			'hide_sections' => (int) get_post_meta( $post_id, self::HIDE_SECTIONS, true ),
 			'hide_words'    => (int) get_post_meta( $post_id, self::HIDE_WORDS, true ),
 			'reference'     => (string) get_post_meta( $post_id, self::REFERENCE, true ),
+			'cond'          => (string) get_post_meta( $post_id, self::COND, true ),
+			'redirect'      => (bool) get_post_meta( $post_id, self::REDIRECT, true ),
+			'download'      => (string) get_post_meta( $post_id, self::DOWNLOAD, true ),
 		);
 
 		$price = (float) $config['price'];
 		if ( $price <= 0 ) {
 			$config['price'] = Gvm_Settings::default_price();
-		}
-
-		if ( '' === $config['template'] ) {
-			$config['template'] = Gvm_Settings::default_template();
 		}
 
 		if ( ! in_array( $config['hide_strategy'], array( 'none', 'blur', 'hide', 'mangle-blur' ), true ) ) {

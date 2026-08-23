@@ -138,6 +138,11 @@ class Gvm_Enqueue {
 			$attrs['data-gvm-callback'] = $callback;
 		}
 
+		$condition = Gvm_Render::condition();
+		if ( '' !== $condition ) {
+			$attrs['data-gvm-cond'] = $condition;
+		}
+
 		return $attrs;
 	}
 }

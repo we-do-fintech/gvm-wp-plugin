@@ -22,6 +22,7 @@ class Gvm_Shortcode {
 	public static function init() {
 		add_shortcode( 'gvm', array( __CLASS__, 'shortcode_gvm' ) );
 		add_shortcode( 'gvm-protected-content', array( __CLASS__, 'shortcode_protected' ) );
+		add_shortcode( 'gvm-download', array( __CLASS__, 'shortcode_download' ) );
 	}
 
 	/**
@@ -32,13 +33,13 @@ class Gvm_Shortcode {
 	private static function atts() {
 		return array(
 			'price'          => Gvm_Settings::default_price(),
-			'template'       => Gvm_Settings::default_template(),
 			'hide_strategy'  => 'hide',
 			'hide_percent'   => 0,
 			'hide_sections'  => 6,
 			'hide_words'     => 0,
 			'reference'      => '',
 			'title'          => '',
+			'cond'           => '',
 		);
 	}
 
@@ -56,13 +57,13 @@ class Gvm_Shortcode {
 			null === $content ? '' : do_shortcode( $content ),
 			array(
 				'price'          => $atts['price'],
-				'template'       => $atts['template'],
 				'hide_strategy'  => $atts['hide_strategy'],
 				'hide_percent'   => $atts['hide_percent'],
 				'hide_sections'  => $atts['hide_sections'],
 				'hide_words'     => $atts['hide_words'],
 				'reference'      => $atts['reference'],
 				'metadata_title' => $atts['title'],
+				'cond'           => $atts['cond'],
 			)
 		);
 	}
@@ -85,13 +86,41 @@ class Gvm_Shortcode {
 			'',
 			array(
 				'price'          => $atts['price'],
-				'template'       => $atts['template'],
 				'hide_strategy'  => $atts['hide_strategy'],
 				'hide_percent'   => $atts['hide_percent'],
 				'hide_sections'  => $atts['hide_sections'],
 				'hide_words'     => $atts['hide_words'],
 				'reference'      => $atts['reference'],
 				'metadata_title' => $atts['title'],
+				'cond'           => $atts['cond'],
+			)
+		);
+	}
+
+	/**
+	 * [gvm-download] shortcode: a gated file download (uses the current post's
+	 * _gvm_download file).
+	 *
+	 * @param array $atts Attributes.
+	 * @return string
+	 */
+	public static function shortcode_download( $atts ) {
+		$atts = shortcode_atts( self::atts(), self::normalize_atts( $atts ), 'gvm-download' );
+
+		$post = get_post();
+
+		if ( ! $post ) {
+			return '';
+		}
+
+		return Gvm_Render::paywall(
+			'',
+			array(
+				'price'       => $atts['price'],
+				'reference'   => $atts['reference'],
+				'cond'        => $atts['cond'],
+				'download'    => true,
+				'download_to' => Gvm_Download::download_url( $post->ID ),
 			)
 		);
 	}
@@ -108,7 +137,11 @@ class Gvm_Shortcode {
 		$normalized = array();
 
 		foreach ( $atts as $key => $value ) {
-			$normalized[ str_replace( '-', '_', (string) $key ) ] = $value;
+			$key = str_replace( '-', '_', (string) $key );
+			if ( 'condition' === $key ) {
+				$key = 'cond';
+			}
+			$normalized[ $key ] = $value;
 		}
 
 		return $normalized;

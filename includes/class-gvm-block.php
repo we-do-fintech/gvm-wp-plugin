@@ -40,13 +40,13 @@ class Gvm_Block {
 				'render_callback' => array( __CLASS__, 'render_block' ),
 				'attributes'      => array(
 					'price'          => array( 'type' => 'string', 'default' => '' ),
-					'template'       => array( 'type' => 'string', 'default' => '' ),
 					'hide_strategy'  => array( 'type' => 'string', 'default' => 'hide' ),
 					'hide_percent'   => array( 'type' => 'integer', 'default' => 0 ),
 					'hide_sections'  => array( 'type' => 'integer', 'default' => 6 ),
 					'hide_words'     => array( 'type' => 'integer', 'default' => 0 ),
 					'reference'      => array( 'type' => 'string', 'default' => '' ),
 					'title'          => array( 'type' => 'string', 'default' => '' ),
+					'cond'           => array( 'type' => 'string', 'default' => '' ),
 				),
 			)
 		);
@@ -64,13 +64,13 @@ class Gvm_Block {
 			(string) $content,
 			array(
 				'price'          => isset( $attributes['price'] ) ? $attributes['price'] : '',
-				'template'       => isset( $attributes['template'] ) ? $attributes['template'] : '',
 				'hide_strategy'  => isset( $attributes['hide_strategy'] ) ? $attributes['hide_strategy'] : 'hide',
 				'hide_percent'   => isset( $attributes['hide_percent'] ) ? $attributes['hide_percent'] : 0,
 				'hide_sections'  => isset( $attributes['hide_sections'] ) ? $attributes['hide_sections'] : 6,
 				'hide_words'     => isset( $attributes['hide_words'] ) ? $attributes['hide_words'] : 0,
 				'reference'      => isset( $attributes['reference'] ) ? $attributes['reference'] : '',
 				'metadata_title' => isset( $attributes['title'] ) ? $attributes['title'] : '',
+				'cond'           => isset( $attributes['cond'] ) ? $attributes['cond'] : '',
 			)
 		);
 	}
@@ -90,7 +90,7 @@ class Gvm_Block {
 		wp_enqueue_script(
 			'gvm-editor',
 			GVM_WP_URL . 'assets/editor.js',
-			array( 'wp-blocks', 'wp-element', 'wp-i18n', 'wp-components', 'wp-data', 'wp-plugins', 'wp-edit-post', 'wp-block-editor', 'wp-compose' ),
+			array( 'wp-blocks', 'wp-element', 'wp-i18n', 'wp-components', 'wp-data', 'wp-plugins', 'wp-edit-post', 'wp-editor', 'wp-block-editor', 'wp-compose' ),
 			GVM_WP_VERSION,
 			true
 		);
@@ -107,8 +107,12 @@ class Gvm_Block {
 			'gvmEditorConfig',
 			array(
 				'defaults' => array(
-					'price'     => Gvm_Settings::default_price(),
-					'template'  => Gvm_Settings::default_template(),
+					'price' => Gvm_Settings::default_price(),
+				),
+				'upload'   => array(
+					'ajaxurl' => Gvm_Download::ajax_url(),
+					'action'  => Gvm_Download::AJAX_ACTION,
+					'nonce'   => Gvm_Download::upload_nonce(),
 				),
 			)
 		);

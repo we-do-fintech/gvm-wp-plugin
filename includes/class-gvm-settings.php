@@ -31,6 +31,9 @@ class Gvm_Settings {
 	const OPTION_DEFAULT_TEMPLATE = 'gvm_default_template';
 	const OPTION_CALLBACK        = 'gvm_callback';
 	const OPTION_POST_TYPES      = 'gvm_post_types';
+	const OPTION_TEMPLATE_PAYMENT = 'gvm_template_payment';
+	const OPTION_TEMPLATE_PAYWALL = 'gvm_template_paywall';
+	const OPTION_TEMPLATE_DOWNLOAD = 'gvm_template_download';
 
 	/**
 	 * Named environments understood by gvm.js (data-gvm-env).
@@ -53,6 +56,9 @@ class Gvm_Settings {
 		self::OPTION_DEFAULT_TEMPLATE => 'paywall',
 		self::OPTION_CALLBACK         => '',
 		self::OPTION_POST_TYPES       => array( 'post' ),
+		self::OPTION_TEMPLATE_PAYMENT => '',
+		self::OPTION_TEMPLATE_PAYWALL => '',
+		self::OPTION_TEMPLATE_DOWNLOAD => '',
 	);
 
 	/**
@@ -130,6 +136,33 @@ class Gvm_Settings {
 	 */
 	public static function callback() {
 		return (string) self::get( self::OPTION_CALLBACK );
+	}
+
+	/**
+	 * Raw payment template HTML from options (empty = fall back to bundled file).
+	 *
+	 * @return string
+	 */
+	public static function template_payment() {
+		return (string) self::get( self::OPTION_TEMPLATE_PAYMENT );
+	}
+
+	/**
+	 * Raw paywall template HTML from options (empty = fall back to bundled file).
+	 *
+	 * @return string
+	 */
+	public static function template_paywall() {
+		return (string) self::get( self::OPTION_TEMPLATE_PAYWALL );
+	}
+
+	/**
+	 * Raw download template HTML from options (empty = fall back to bundled file).
+	 *
+	 * @return string
+	 */
+	public static function template_download() {
+		return (string) self::get( self::OPTION_TEMPLATE_DOWNLOAD );
 	}
 
 	/**
@@ -312,6 +345,36 @@ class Gvm_Settings {
 			)
 		);
 
+		register_setting(
+			self::GROUP,
+			self::OPTION_TEMPLATE_PAYMENT,
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_template_html' ),
+				'default'           => self::$defaults[ self::OPTION_TEMPLATE_PAYMENT ],
+			)
+		);
+
+		register_setting(
+			self::GROUP,
+			self::OPTION_TEMPLATE_PAYWALL,
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_template_html' ),
+				'default'           => self::$defaults[ self::OPTION_TEMPLATE_PAYWALL ],
+			)
+		);
+
+		register_setting(
+			self::GROUP,
+			self::OPTION_TEMPLATE_DOWNLOAD,
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_template_html' ),
+				'default'           => self::$defaults[ self::OPTION_TEMPLATE_DOWNLOAD ],
+			)
+		);
+
 		add_settings_section(
 			'gvm_main',
 			__( 'GetViaMsg configuration', 'gvm-wp' ),
@@ -327,6 +390,9 @@ class Gvm_Settings {
 		add_settings_field( 'gvm_default_template', __( 'Default template', 'gvm-wp' ), array( __CLASS__, 'field_default_template' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_callback', __( 'JS callback', 'gvm-wp' ), array( __CLASS__, 'field_callback' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_post_types', __( 'Post types', 'gvm-wp' ), array( __CLASS__, 'field_post_types' ), self::PAGE, 'gvm_main' );
+		add_settings_field( 'gvm_template_payment', __( 'Payment template', 'gvm-wp' ), array( __CLASS__, 'field_template_payment' ), self::PAGE, 'gvm_main' );
+		add_settings_field( 'gvm_template_paywall', __( 'Paywall template', 'gvm-wp' ), array( __CLASS__, 'field_template_paywall' ), self::PAGE, 'gvm_main' );
+		add_settings_field( 'gvm_template_download', __( 'Download template', 'gvm-wp' ), array( __CLASS__, 'field_template_download' ), self::PAGE, 'gvm_main' );
 	}
 
 	/**
@@ -336,6 +402,7 @@ class Gvm_Settings {
 	 */
 	public static function section_main() {
 		echo '<p>' . esc_html__( 'These values are rendered as data-gvm-* attributes on the body tag when a paywall is present.', 'gvm-wp' ) . '</p>';
+		echo '<p>' . esc_html__( 'Per-article controls (price, template, hide strategy, condition) appear on every enabled post type below: a "GetViaMsg Paywall" meta box in the classic editor, and a sidebar panel in the block editor.', 'gvm-wp' ) . '</p>';
 	}
 
 	/**
@@ -435,6 +502,17 @@ class Gvm_Settings {
 		$types     = array_intersect( $types, array_keys( $available ) );
 
 		return empty( $types ) ? array( 'post' ) : array_values( $types );
+	}
+
+	/**
+	 * Sanitize a template (raw HTML). Only manageable by admins (manage_options);
+	 * stored verbatim so <style>, <template> and data-* markup survive.
+	 *
+	 * @param mixed $value Raw input.
+	 * @return string
+	 */
+	public static function sanitize_template_html( $value ) {
+		return trim( (string) wp_unslash( $value ) );
 	}
 
 	/**
@@ -553,6 +631,54 @@ class Gvm_Settings {
 				esc_html( $type->labels->singular_name )
 			);
 		}
+	}
+
+	/**
+	 * Payment template field (QR / transaction modal).
+	 *
+	 * @return void
+	 */
+	public static function field_template_payment() {
+		$current = Gvm_Render::template_html( 'payment' );
+
+		printf(
+			'<textarea name="%1$s" rows="12" class="large-text code">%2$s</textarea>',
+			esc_attr( self::OPTION_TEMPLATE_PAYMENT ),
+			esc_textarea( $current )
+		);
+		echo '<p class="description">' . esc_html__( 'Payment modal <template> inner HTML (QR + send SMS + timer). Uses data-gvm-bind-* elements. Leave empty to use the bundled template.', 'gvm-wp' ) . '</p>';
+	}
+
+	/**
+	 * Paywall template field (article blocker).
+	 *
+	 * @return void
+	 */
+	public static function field_template_paywall() {
+		$current = Gvm_Render::template_html( 'paywall' );
+
+		printf(
+			'<textarea name="%1$s" rows="12" class="large-text code">%2$s</textarea>',
+			esc_attr( self::OPTION_TEMPLATE_PAYWALL ),
+			esc_textarea( $current )
+		);
+		echo '<p class="description">' . esc_html__( 'Paywall (article blocker) <template> inner HTML. Uses data-gvm-bind-* elements. Leave empty to use the bundled template.', 'gvm-wp' ) . '</p>';
+	}
+
+	/**
+	 * Download template field (gated file trigger).
+	 *
+	 * @return void
+	 */
+	public static function field_template_download() {
+		$current = Gvm_Render::template_html( 'download' );
+
+		printf(
+			'<textarea name="%1$s" rows="12" class="large-text code">%2$s</textarea>',
+			esc_attr( self::OPTION_TEMPLATE_DOWNLOAD ),
+			esc_textarea( $current )
+		);
+		echo '<p class="description">' . esc_html__( 'Download trigger <template> inner HTML (button to buy the gated file). Uses data-gvm-bind-* elements. Leave empty to use the bundled template.', 'gvm-wp' ) . '</p>';
 	}
 
 	/**

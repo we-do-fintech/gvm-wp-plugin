@@ -1,22 +1,14 @@
 <style>
-	.gvm-paywall-box {
+	.gvm-download-box {
 		border: 1px solid rgba(255, 185, 3, 0.45);
 		border-radius: 14px;
 		padding: 24px;
-		max-width: 940px;
-		margin: 0 auto;
+		max-width: 560px;
+		margin: 16px auto;
 		text-align: center;
 		background: linear-gradient(135deg, rgba(255, 185, 3, 0.12) 0%, rgba(123, 44, 255, 0.08) 100%);
 	}
-	.gvm-paywall-box .gvm-meta {
-		font-size: 0.95rem;
-		opacity: 0.85;
-	}
-	.gvm-paywall-box [data-gvm-bind-reading-time],
-	.gvm-paywall-box [data-gvm-bind-reading-words] {
-		font-weight: 700;
-	}
-	.gvm-paywall-box button {
+	.gvm-download-box button {
 		margin-top: 16px;
 		padding: 0.9rem 1.5rem;
 		font-size: 1.15rem;
@@ -28,23 +20,18 @@
 		cursor: pointer;
 		box-shadow: 0 6px 20px rgba(255, 185, 3, 0.35);
 	}
-	.gvm-paywall-box button:hover {
+	.gvm-download-box button:hover {
 		filter: brightness(1.06);
 		transform: translateY(-1px);
 	}
-	.gvm-paywall-box button:active {
+	.gvm-download-box button:active {
 		transform: translateY(0);
 	}
 </style>
-<div class="gvm-paywall-box">
-	<p>Unlock this article in about 10 seconds with GetViaMsg.</p>
-	<p class="gvm-meta">
-		Session size:
-		<span data-gvm-bind-reading-time></span> minutes or
-		<span data-gvm-bind-reading-words></span> words.
-	</p>
+<div class="gvm-download-box">
+	<p>Download this file after a one-time payment.</p>
 	<button data-gvm-bind-pay>
-		Unlock now for
+		Download for
 		<span data-gvm-bind-price></span>
 		<span data-gvm-bind-currency></span>
 	</button>

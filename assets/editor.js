@@ -15,6 +15,8 @@
 
 	var el = wp.element.createElement;
 	var __ = wp.i18n.__;
+	var useRef = wp.element.useRef;
+	var useState = wp.element.useState;
 
 	var registerBlockType = wp.blocks.registerBlockType;
 	var InnerBlocks = wp.blockEditor.InnerBlocks;
@@ -26,8 +28,9 @@
 	var TextControl = wp.components.TextControl;
 	var SelectControl = wp.components.SelectControl;
 	var ToggleControl = wp.components.ToggleControl;
+	var Button = wp.components.Button;
 
-	var PluginDocumentSettingPanel = wp.editPost && wp.editPost.PluginDocumentSettingPanel;
+	var PluginDocumentSettingPanel = (wp.editPost && wp.editPost.PluginDocumentSettingPanel) || (wp.editor && wp.editor.PluginDocumentSettingPanel);
 	var registerPlugin = wp.plugins && wp.plugins.registerPlugin;
 
 	var useSelect = wp.data.useSelect;
@@ -38,12 +41,14 @@
 	var META = {
 		enabled: '_gvm_enabled',
 		price: '_gvm_price',
-		template: '_gvm_template',
 		hide_strategy: '_gvm_hide_strategy',
 		hide_percent: '_gvm_hide_percent',
 		hide_sections: '_gvm_hide_sections',
 		hide_words: '_gvm_hide_words',
-		reference: '_gvm_reference'
+		reference: '_gvm_reference',
+		cond: '_gvm_cond',
+		redirect: '_gvm_redirect',
+		download: '_gvm_download'
 	};
 
 	var STRATEGIES = [
@@ -73,12 +78,6 @@
 					onChange: function (value) { setAttributes({ price: value }); }
 				}),
 				el(TextControl, {
-					label: __('Template', 'gvm-wp'),
-					value: atts.template,
-					placeholder: config.defaults.template,
-					onChange: function (value) { setAttributes({ template: value }); }
-				}),
-				el(TextControl, {
 					label: __('Reference', 'gvm-wp'),
 					value: atts.reference,
 					onChange: function (value) { setAttributes({ reference: value }); }
@@ -87,6 +86,12 @@
 					label: __('Title', 'gvm-wp'),
 					value: atts.title,
 					onChange: function (value) { setAttributes({ title: value }); }
+				}),
+				el(TextControl, {
+					label: __('Condition', 'gvm-wp'),
+					value: atts.cond,
+					onChange: function (value) { setAttributes({ cond: value }); },
+					help: __('Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp')
 				}),
 				el(SelectControl, {
 					label: __('Hide strategy', 'gvm-wp'),
@@ -128,13 +133,13 @@
 		supports: { html: false, reusable: false },
 		attributes: {
 			price: { type: 'string', default: '' },
-			template: { type: 'string', default: '' },
 			hide_strategy: { type: 'string', default: 'hide' },
 			hide_percent: { type: 'integer', default: 0 },
 			hide_sections: { type: 'integer', default: 6 },
 			hide_words: { type: 'integer', default: 0 },
 			reference: { type: 'string', default: '' },
-			title: { type: 'string', default: '' }
+			title: { type: 'string', default: '' },
+			cond: { type: 'string', default: '' }
 		},
 		edit: function (props) {
 			var blockProps = useBlockProps();
@@ -163,6 +168,46 @@
 		}, [key]);
 	}
 
+	function DownloadUpload(props) {
+		var inputRef = useRef(null);
+		var status = useState('');
+		var setStatus = status[1];
+		var uploadCfg = (config.upload || {});
+
+		function onChange(e) {
+			var file = e.target.files && e.target.files[0];
+			if (!file) {
+				return;
+			}
+
+			var fd = new FormData();
+			fd.append('action', uploadCfg.action || 'gvm_upload_download');
+			fd.append('nonce', uploadCfg.nonce);
+			fd.append('file', file);
+
+			setStatus(__('Uploading…', 'gvm-wp'));
+
+			fetch(uploadCfg.ajaxurl, { method: 'POST', body: fd, credentials: 'same-origin' })
+				.then(function (r) { return r.json(); })
+				.then(function (res) {
+					if (res && res.success) {
+						props.onUploaded(res.data.filename);
+						setStatus(__('Uploaded', 'gvm-wp'));
+					} else {
+						setStatus((res && res.data && res.data.message) || __('Upload failed', 'gvm-wp'));
+					}
+				})
+				.catch(function () { setStatus(__('Upload failed', 'gvm-wp')); })
+				.finally(function () { e.target.value = ''; });
+		}
+
+		return el('div', { className: 'gvm-upload-row' },
+			el('input', { type: 'file', ref: inputRef, style: { display: 'none' }, onChange: onChange }),
+			el(Button, { isSecondary: true, onClick: function () { inputRef.current.click(); } }, __('Upload file', 'gvm-wp')),
+			status[0] ? el('p', { className: 'description' }, status[0]) : null
+		);
+	}
+
 	function DocumentPanel() {
 		var editPost = useDispatch('core/editor').editPost;
 
@@ -174,12 +219,14 @@
 
 		var enabled = useMetaValue(META.enabled);
 		var price = useMetaValue(META.price);
-		var template = useMetaValue(META.template);
 		var hideStrategy = useMetaValue(META.hide_strategy);
 		var hideSections = useMetaValue(META.hide_sections);
 		var hidePercent = useMetaValue(META.hide_percent);
 		var hideWords = useMetaValue(META.hide_words);
 		var reference = useMetaValue(META.reference);
+		var cond = useMetaValue(META.cond);
+		var redirect = useMetaValue(META.redirect);
+		var download = useMetaValue(META.download);
 
 		return el(PluginDocumentSettingPanel, {
 			name: 'gvm-paywall-panel',
@@ -194,6 +241,14 @@
 						onChange: function (value) { setMeta(META.enabled, value); }
 					})
 				),
+				el(PanelRow, {},
+					el(ToggleControl, {
+						label: __('Redirect after payment', 'gvm-wp'),
+						checked: !!redirect,
+						onChange: function (value) { setMeta(META.redirect, value); },
+						help: __('Show a teaser, then redirect to a verified URL that renders the full article server-side.', 'gvm-wp')
+					})
+				),
 				el(TextControl, {
 					label: __('Price', 'gvm-wp'),
 					type: 'number',
@@ -201,13 +256,16 @@
 					min: '0.01',
 					max: '10',
 					value: price ? String(price) : '',
-					onChange: function (value) { setMeta(META.price, value === '' ? null : value); }
+					onChange: function (value) { setMeta(META.price, value); }
 				}),
 				el(TextControl, {
-					label: __('Template', 'gvm-wp'),
-					value: template || '',
-					placeholder: config.defaults.template,
-					onChange: function (value) { setMeta(META.template, value); }
+					label: __('Download file', 'gvm-wp'),
+					value: download || '',
+					onChange: function (value) { setMeta(META.download, value); },
+					help: __('Protected file (in uploads/gvm/) to sell via download. Empty = download strategy disabled.', 'gvm-wp')
+				}),
+				el(DownloadUpload, {
+					onUploaded: function (filename) { setMeta(META.download, filename); }
 				}),
 				el(SelectControl, {
 					label: __('Hide strategy', 'gvm-wp'),
@@ -238,6 +296,12 @@
 					value: reference || '',
 					onChange: function (value) { setMeta(META.reference, value); },
 					help: __('Leave empty to auto-generate from slug or post ID.', 'gvm-wp')
+				}),
+				el(TextControl, {
+					label: __('Condition', 'gvm-wp'),
+					value: cond || '',
+					onChange: function (value) { setMeta(META.cond, value); },
+					help: __('Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp')
 				})
 			)
 		);

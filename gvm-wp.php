@@ -29,6 +29,7 @@ require_once GVM_WP_DIR . 'includes/class-gvm-settings.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-post.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-signature.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-render.php';
+require_once GVM_WP_DIR . 'includes/class-gvm-download.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-enqueue.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-post-meta.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-block.php';
@@ -42,6 +43,8 @@ require_once GVM_WP_DIR . 'includes/class-gvm-shortcode.php';
 function gvm_init() {
 	Gvm_Settings::init();
 	Gvm_Post::init();
+	Gvm_Render::init();
+	Gvm_Download::init();
 	Gvm_Enqueue::init();
 	Gvm_Post_Meta::init();
 	Gvm_Block::init();
@@ -50,11 +53,12 @@ function gvm_init() {
 add_action( 'plugins_loaded', 'gvm_init' );
 
 /**
- * Activation: store defaults only when no settings exist yet.
+ * Activation: store defaults and create the protected downloads directory.
  *
  * @return void
  */
 function gvm_activate() {
 	Gvm_Settings::install_defaults();
+	Gvm_Download::ensure_protected();
 }
 register_activation_hook( __FILE__, 'gvm_activate' );

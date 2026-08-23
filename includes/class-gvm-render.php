@@ -43,6 +43,14 @@ class Gvm_Render {
 	private static $registered = array();
 
 	/**
+	 * data-gvm-cond condition for the current request (declared per article,
+	 * injected onto <body>). Only one condition is supported per page.
+	 *
+	 * @var string
+	 */
+	private static $condition = '';
+
+	/**
 	 * Register hooks.
 	 *
 	 * @return void
@@ -72,6 +80,15 @@ class Gvm_Render {
 	}
 
 	/**
+	 * The active data-gvm-cond condition (empty when none).
+	 *
+	 * @return string
+	 */
+	public static function condition() {
+		return self::$condition;
+	}
+
+	/**
 	 * Wrap whole post content in a paywall when enabled via post meta.
 	 *
 	 * @param string $content Post content.
@@ -79,6 +96,11 @@ class Gvm_Render {
 	 */
 	public static function filter_content( $content ) {
 		if ( is_admin() || is_feed() || wp_doing_ajax() ) {
+			return $content;
+		}
+
+		// Only gate the single post view, never archives/lists/excerpts.
+		if ( ! is_singular() ) {
 			return $content;
 		}
 
@@ -94,6 +116,50 @@ class Gvm_Render {
 			return $content;
 		}
 
+		$stats = self::reading_stats( $content );
+
+		if ( ! empty( $config['download'] ) ) {
+			// Download strategy: teaser + a "download" trigger. The endpoint
+			// serves the gated file after signature verification.
+			return self::teaser( $content, $config )
+				. self::paywall(
+					'',
+					array(
+						'price'           => $config['price'],
+						'reference'       => $config['reference'],
+						'metadata_title'  => get_the_title( $post ),
+						'cond'            => isset( $config['cond'] ) ? $config['cond'] : '',
+						'download'        => true,
+						'download_to'     => Gvm_Download::download_url( $post->ID ),
+						'reading_words'   => $stats['words'],
+						'reading_minutes' => $stats['minutes'],
+					)
+				);
+		}
+
+		if ( ! empty( $config['redirect'] ) ) {
+			if ( self::is_unlocked( $config['reference'] ) ) {
+				return $content;
+			}
+
+			// Teaser + a click-to-unlock trigger (redirect strategy).
+			return self::teaser( $content, $config )
+				. self::paywall(
+					'',
+					array(
+						'price'           => $config['price'],
+						'template'        => $config['template'],
+						'reference'       => $config['reference'],
+						'metadata_title'  => get_the_title( $post ),
+						'cond'            => isset( $config['cond'] ) ? $config['cond'] : '',
+						'redirect'        => true,
+						'redirect_to'     => get_permalink( $post ),
+						'reading_words'   => $stats['words'],
+						'reading_minutes' => $stats['minutes'],
+					)
+				);
+		}
+
 		return self::paywall(
 			$content,
 			array(
@@ -105,6 +171,7 @@ class Gvm_Render {
 				'hide_words'     => $config['hide_words'],
 				'reference'      => $config['reference'],
 				'metadata_title' => get_the_title( $post ),
+				'cond'           => isset( $config['cond'] ) ? $config['cond'] : '',
 			)
 		);
 	}
@@ -128,10 +195,20 @@ class Gvm_Render {
 				'hide_words'     => 0,
 				'reference'      => '',
 				'metadata_title' => '',
+				'cond'           => '',
+				'redirect'       => false,
+				'redirect_to'    => '',
+				'download'       => false,
+				'download_to'    => '',
 			)
 		);
 
 		$strategy = in_array( $args['hide_strategy'], array( 'none', 'blur', 'hide', 'mangle-blur' ), true ) ? $args['hide_strategy'] : 'hide';
+
+		$condition = Gvm_Post::sanitize_cond( (string) $args['cond'] );
+		if ( '' !== $condition ) {
+			self::$condition = $condition;
+		}
 
 		$reference     = self::resolve_reference( $args['reference'] );
 		$template_slug = sanitize_key( (string) $args['template'] );
@@ -153,7 +230,19 @@ class Gvm_Render {
 			$attrs['data-gvm-metadata-title'] = (string) $args['metadata_title'];
 		}
 
-		if ( 'none' !== $strategy ) {
+		if ( ! empty( $args['download'] ) ) {
+			// Download strategy: the node is the click trigger; gvm.js appends
+			// the signature params to the download URL after payment.
+			$attrs['data-gvm-http-download'] = (string) $args['download_to'];
+			$content = self::static_trigger( $args, 'download' );
+		} elseif ( ! empty( $args['redirect'] ) ) {
+			// Redirect strategy: no hide action. The node itself is the click
+			// trigger; gvm.js redirects with the signature params after payment
+			// (server renders full content on the target URL).
+			$redirect_to = (string) $args['redirect_to'];
+			$attrs['data-gvm-http-redirect-to'] = '' !== $redirect_to ? $redirect_to : self::current_url();
+			$content = self::static_trigger( $args, $template_slug );
+		} elseif ( 'none' !== $strategy ) {
 			$attrs['data-gvm-hide-strategy']      = $strategy;
 			$attrs['data-gvm-hide-template-name'] = $hide_name;
 
@@ -201,13 +290,158 @@ class Gvm_Render {
 	}
 
 	/**
+	 * Whether the current request is unlocked for a given reference.
+	 *
+	 * @param string $reference Expected reference (empty = any reference).
+	 * @return bool
+	 */
+	public static function is_unlocked( $reference ) {
+		if ( ! Gvm_Signature::verify_query_signature() ) {
+			return false;
+		}
+
+		if ( '' === $reference ) {
+			return true;
+		}
+
+		$params = Gvm_Signature::from_request();
+
+		return hash_equals( $reference, $params['reference'] );
+	}
+
+	/**
+	 * Build a teaser from content following the hide settings (sections/words/percent).
+	 *
+	 * @param string $content Full content.
+	 * @param array  $args    Config (hide_sections, hide_words, hide_percent).
+	 * @return string
+	 */
+	public static function teaser( $content, $args = array() ) {
+		$sections = (int) ( isset( $args['hide_sections'] ) ? $args['hide_sections'] : 0 );
+		$words    = (int) ( isset( $args['hide_words'] ) ? $args['hide_words'] : 0 );
+		$percent  = (int) ( isset( $args['hide_percent'] ) ? $args['hide_percent'] : 0 );
+
+		if ( $sections > 1 ) {
+			$teaser = self::first_blocks( $content, $sections );
+			if ( '' !== $teaser ) {
+				return $teaser;
+			}
+		}
+
+		$limit = 50;
+
+		if ( $words > 5 ) {
+			$limit = $words;
+		} elseif ( $percent >= 1 && $percent <= 100 ) {
+			$total = str_word_count( wp_strip_all_tags( $content ) );
+			$limit = (int) round( $total * $percent / 100 );
+		}
+
+		if ( $limit < 1 ) {
+			$limit = 50;
+		}
+
+		return wp_trim_words( $content, $limit, '&hellip;' );
+	}
+
+	/**
+	 * Keep the first N top-level HTML blocks.
+	 *
+	 * @param string $content Full content.
+	 * @param int    $count   Number of blocks to keep.
+	 * @return string
+	 */
+	private static function first_blocks( $content, $count ) {
+		if ( ! preg_match_all( '#<(p|h[1-6]|ul|ol|blockquote|figure|table|div)\b[^>]*>(?:(?!</\1>).)*</\1>#is', $content, $matches ) ) {
+			return '';
+		}
+
+		return implode( "\n", array_slice( $matches[0], 0, (int) $count ) );
+	}
+
+	/**
+	 * Reading stats (word count + minutes), mirroring gvm.js Utils.readingStats().
+	 *
+	 * @param string $content Full content.
+	 * @return array{words:int,minutes:int}
+	 */
+	public static function reading_stats( $content ) {
+		$text = (string) $content;
+
+		// Approximate innerText: insert a space at block boundaries before stripping tags.
+		$text = preg_replace( '#<(p|h[1-6]|li|br|div|section|article|blockquote|tr)[^>]*>#i', ' ', $text );
+		$text = wp_strip_all_tags( $text );
+		$text = html_entity_decode( $text, ENT_QUOTES, 'UTF-8' );
+
+		$words   = array_filter( preg_split( '/\s+/', trim( $text ) ) );
+		$count   = count( $words );
+		$minutes = (int) ceil( $count / 200 );
+
+		return array(
+			'words'   => $count,
+			'minutes' => $minutes,
+		);
+	}
+
+	/**
+	 * Build a visible trigger rendered server-side for redirect/download mode.
+	 *
+	 * Reuses a gvm template (paywall/download) for a consistent look. gvm.js's
+	 * redirect/download action binds a click listener to the whole node, so
+	 * data-gvm-bind-pay is not used here — the static bindings (price, currency,
+	 * reading time/words, reference) are injected server-side.
+	 *
+	 * @param array  $args Paywall args (price, reading stats, reference).
+	 * @param string $slug Template slug to render.
+	 * @return string
+	 */
+	private static function static_trigger( $args, $slug ) {
+		$slug = sanitize_key( (string) $slug );
+		if ( '' === $slug ) {
+			$slug = Gvm_Settings::default_template();
+		}
+
+		$html = self::template_html( $slug );
+
+		$bindings = array(
+			'price'         => esc_html( self::format_price( $args['price'] ) ),
+			'currency'      => esc_html( Gvm_Settings::currency() ),
+			'reading-time'  => isset( $args['reading_minutes'] ) ? (int) $args['reading_minutes'] : 0,
+			'reading-words' => isset( $args['reading_words'] ) ? (int) $args['reading_words'] : 0,
+			'reference'     => esc_html( (string) $args['reference'] ),
+		);
+
+		foreach ( $bindings as $key => $value ) {
+			$html = str_replace(
+				'<span data-gvm-bind-' . $key . '></span>',
+				'<span>' . $value . '</span>',
+				$html
+			);
+		}
+
+		$html = str_replace( ' data-gvm-bind-pay', '', $html );
+
+		return $html;
+	}
+
+	/**
+	 * Current request URL (for data-gvm-http-redirect-to fallback).
+	 *
+	 * @return string
+	 */
+	public static function current_url() {
+		$url = home_url( add_query_arg( array() ) );
+
+		return (string) apply_filters( 'gvm_redirect_to', $url );
+	}
+
+	/**
 	 * Format a price for the data-gvm-price attribute (0.01-10).
 	 *
 	 * @param mixed $price Raw price.
 	 * @return string
 	 */
-	public static function format_price( $price ) {
-		$price = (float) $price;
+	public static function format_price( $price ) {		$price = (float) $price;
 
 		if ( $price <= 0 ) {
 			$price = Gvm_Settings::default_price();
@@ -273,12 +507,32 @@ class Gvm_Render {
 	}
 
 	/**
-	 * Load a template fragment. Filterable by slug for theme overrides.
+	 * Load a template fragment.
 	 *
-	 * @param string $slug Template slug (payment|paywall).
+	 * For "payment", "paywall" and "download", the admin-defined settings
+	 * template takes precedence; otherwise the bundled file (or a theme
+	 * override via filter) is used.
+	 *
+	 * @param string $slug Template slug (payment|paywall|download).
 	 * @return string
 	 */
 	public static function template_html( $slug ) {
+		if ( 'payment' === $slug || 'paywall' === $slug || 'download' === $slug ) {
+			$option = '';
+
+			if ( 'payment' === $slug ) {
+				$option = Gvm_Settings::template_payment();
+			} elseif ( 'paywall' === $slug ) {
+				$option = Gvm_Settings::template_paywall();
+			} else {
+				$option = Gvm_Settings::template_download();
+			}
+
+			if ( '' !== trim( $option ) ) {
+				return $option;
+			}
+		}
+
 		$default = GVM_WP_DIR . 'templates/' . $slug . '.php';
 
 		/**

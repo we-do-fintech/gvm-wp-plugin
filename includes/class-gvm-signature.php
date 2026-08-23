@@ -17,7 +17,11 @@ class Gvm_Signature {
 	/**
 	 * Verify a gvm-signature.
 	 *
-	 * Signature = hex( HMAC-SHA256( $commitment_id . $tenant . $reference . $status, $secret ) ).
+	 * Matches gvm-sdk / gvm backend (Go) `CalculateSignatureWithParams`:
+	 *
+	 *   hex( HMAC-SHA256( $commitment_id . $tenant . $reference . $status . $secret, $secret ) )
+	 *
+	 * Note: the secret is appended to the message in addition to being the HMAC key.
 	 *
 	 * @param string $secret        HMAC key (from options).
 	 * @param string $commitment_id Commitment id query param.
@@ -32,7 +36,11 @@ class Gvm_Signature {
 			return false;
 		}
 
-		$expected = hash_hmac( 'sha256', $commitment_id . $tenant . $reference . $status, $secret );
+		$expected = hash_hmac(
+			'sha256',
+			$commitment_id . $tenant . $reference . $status . $secret,
+			$secret
+		);
 
 		return hash_equals( $expected, (string) $signature );
 	}
@@ -55,15 +63,15 @@ class Gvm_Signature {
 	/**
 	 * Verify the current request's gvm-signature query param.
 	 *
-	 * Returns true only when gvm-status is "resolved" AND the HMAC-SHA256
-	 * signature matches the stored secret.
+	 * Returns true only when gvm-status is an unlock state ("resolved" or
+	 * "duplicated") AND the HMAC-SHA256 signature matches the stored secret.
 	 *
 	 * @return bool
 	 */
 	public static function verify_query_signature() {
 		$params = self::from_request();
 
-		if ( 'resolved' !== $params['status'] ) {
+		if ( ! in_array( $params['status'], array( 'resolved', 'duplicated' ), true ) ) {
 			return false;
 		}
 

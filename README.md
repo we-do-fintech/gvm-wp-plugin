@@ -38,7 +38,7 @@ The entire content is wrapped in a paywall.
 ### Shortcode
 
 ```
-[gvm price="2.99" template="paywall" hide-strategy="blur" hide-percent="40"]
+[gvm price="2.99" hide-strategy="blur" hide-percent="40"]
 Your premium content goes here.
 [/gvm]
 ```
@@ -46,13 +46,16 @@ Your premium content goes here.
 Supported attributes (hyphen and underscore forms are equivalent):
 
 - `price` — `data-gvm-price` (0.01-10).
-- `template` — paywall `<template>` slug (`data-gvm-hide-template-name`).
 - `hide-strategy` / `hide_strategy` — `blur|hide|mangle-blur`.
 - `hide-percent` / `hide_percent` — `data-gvm-hide-percent` (1-100).
 - `hide-sections` / `hide_sections` — `data-gvm-hide-sections`.
 - `hide-words` / `hide_words` — `data-gvm-hide-words`.
 - `reference` — `data-gvm-reference` (auto-generated from slug/post ID when empty).
 - `title` — `data-gvm-metadata-title`.
+- `cond` — `data-gvm-cond` condition expression (applied at page level), e.g. `ab > 0.1 AND language includes 'pl'`.
+
+The same controls (including the condition) are available per-article in the
+meta box / sidebar panel and as block attributes.
 
 ### Server-side protected content
 
@@ -70,24 +73,33 @@ The content is only rendered when the request carries a valid `gvm-signature`
 Add the **GetViaMsg Paywall** block and nest content inside it. The block is
 server-rendered to the same `data-gvm-*` wrapper markup.
 
+### Download (gated file)
+
+Set a **Download file** on a post (a filename stored in the protected
+`wp-content/uploads/gvm/` directory — blocked from direct HTTP access by a
+generated `.htaccess`). The plugin renders a download trigger; after payment the
+`?gvm_download=<post_id>` endpoint verifies the signature and streams the file
+with `Content-Disposition: attachment`. Shortcode: `[gvm-download price="1.99"]`.
+
 ## Signature verification
 
 After a successful payment, `gvm.js` redirects (or fetches) with the query
 parameters `gvm-status`, `gvm-commitment-id`, `gvm-reference`, `gvm-tenant` and
-`gvm-signature`. The plugin verifies:
+`gvm-signature`. The plugin verifies (matching gvm-sdk / gvm backend):
 
 ```php
 $expected = hash_hmac(
 	'sha256',
-	$commitment_id . $tenant . $reference . $status,
+	$commitment_id . $tenant . $reference . $status . $secret, // note: secret is appended to the message
 	$secret
 );
 
 $valid = hash_equals( $expected, $signature );
 ```
 
-`[gvm-protected-content]` renders its content only when `Gvm_Signature::verify_query_signature()`
-returns true, i.e. the signature is valid **and** `gvm-status` is `resolved`.
+`[gvm-protected-content]` / redirect / download reveal their content only when
+`Gvm_Signature::verify_query_signature()` returns true, i.e. the signature is
+valid **and** `gvm-status` is `resolved` or `duplicated`.
 
 ## Bundling `gvm.js`
 
@@ -114,8 +126,16 @@ URL at any time with the `gvm_sdk_url` filter.
 
 The repo follows WordPress coding standards (snake_case hooks, `Gvm_` class
 prefix, escaped output, nonces + capability checks on all admin input).
-Linting is done with PHPCS/WordPress-Coding-Standards; PHP is not available in
-this environment, so `php -l` and PHPCS were not run here.
+`php -l` passes on all PHP files.
+
+A local WordPress + MySQL stack is provided for development
+(`wordpress-env/docker-compose.yml`) and bind-mounts the plugin source:
+
+```bash
+./dev.sh up       # WordPress at http://localhost:8080, plugin mounted
+./dev.sh logs     # tail WordPress logs
+./dev.sh down     # stop the stack
+```
 
 ## License
 

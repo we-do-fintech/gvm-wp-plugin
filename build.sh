@@ -43,11 +43,20 @@ build_zip() {
 
 	rsync -a \
 		--exclude '.git' \
+		--exclude '.github' \
 		--exclude 'node_modules' \
 		--exclude 'vendor' \
 		--exclude 'dist' \
+		--exclude 'wordpress-env' \
+		--exclude 'docs' \
 		--exclude '*.zip' \
 		--exclude '.DS_Store' \
+		--exclude '.gitignore' \
+		--exclude 'PLAN.md' \
+		--exclude 'AGENTS.md' \
+		--exclude 'build.sh' \
+		--exclude 'publish.sh' \
+		--exclude 'dev.sh' \
 		"$ROOT/" "$stage/"
 
 	# Ensure a vendored gvm.js (if any) is included even though it is gitignored.

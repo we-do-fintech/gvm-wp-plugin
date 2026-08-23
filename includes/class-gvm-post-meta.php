@@ -38,6 +38,13 @@ class Gvm_Post_Meta {
 			return;
 		}
 
+		// The block editor has its own native sidebar panel; only render the
+		// classic meta box when the block editor is not in use, to avoid two
+		// "GetViaMsg Paywall" panels showing side by side.
+		if ( use_block_editor_for_post_type( $post_type ) ) {
+			return;
+		}
+
 		add_meta_box(
 			'gvm-paywall',
 			__( 'GetViaMsg Paywall', 'gvm-wp' ),
@@ -57,6 +64,8 @@ class Gvm_Post_Meta {
 	public static function render( $post ) {
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE_NAME );
 
+		Gvm_Download::enqueue_upload_assets();
+
 		$config = Gvm_Post::get_config( $post->ID );
 		?>
 		<p>
@@ -67,13 +76,22 @@ class Gvm_Post_Meta {
 		</p>
 
 		<p>
+			<label>
+				<input type="checkbox" name="gvm_redirect" value="1" <?php checked( $config['redirect'], true ); ?> />
+				<?php esc_html_e( 'Redirect after payment', 'gvm-wp' ); ?>
+			</label>
+			<span class="description"><?php esc_html_e( 'Show a teaser, then redirect to a verified URL that renders the full article server-side.', 'gvm-wp' ); ?></span>
+		</p>
+
+		<p>
 			<label for="gvm_price"><?php esc_html_e( 'Price', 'gvm-wp' ); ?></label>
 			<input type="number" id="gvm_price" name="gvm_price" step="0.01" min="0.01" max="10" class="widefat" value="<?php echo esc_attr( (string) $config['price'] ); ?>" />
 		</p>
 
 		<p>
-			<label for="gvm_template"><?php esc_html_e( 'Template', 'gvm-wp' ); ?></label>
-			<input type="text" id="gvm_template" name="gvm_template" class="widefat" value="<?php echo esc_attr( $config['template'] ); ?>" />
+			<label><?php esc_html_e( 'Download file', 'gvm-wp' ); ?></label>
+			<?php Gvm_Download::upload_field( (string) $config['download'] ); ?>
+			<span class="description"><?php esc_html_e( 'Protected file to sell via download. Leave empty to disable the download strategy.', 'gvm-wp' ); ?></span>
 		</p>
 
 		<p>
@@ -106,6 +124,12 @@ class Gvm_Post_Meta {
 			<input type="text" id="gvm_reference" name="gvm_reference" class="widefat" value="<?php echo esc_attr( $config['reference'] ); ?>" placeholder="<?php echo esc_attr( Gvm_Post::reference( $post->ID ) ); ?>" />
 			<span class="description"><?php esc_html_e( 'Leave empty to auto-generate from slug or post ID.', 'gvm-wp' ); ?></span>
 		</p>
+
+		<p>
+			<label for="gvm_cond"><?php esc_html_e( 'Condition', 'gvm-wp' ); ?></label>
+			<input type="text" id="gvm_cond" name="gvm_cond" class="widefat" value="<?php echo esc_attr( $config['cond'] ); ?>" placeholder="<?php echo esc_attr( "ab > 0.1 AND language includes 'pl'" ); ?>" />
+			<span class="description"><?php esc_html_e( 'Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp' ); ?></span>
+		</p>
 		<?php
 	}
 
@@ -135,13 +159,17 @@ class Gvm_Post_Meta {
 		$enabled = isset( $_POST['gvm_enabled'] ) ? (bool) $_POST['gvm_enabled'] : false;
 		update_post_meta( $post_id, Gvm_Post::ENABLED, $enabled );
 
+		$redirect = isset( $_POST['gvm_redirect'] ) ? (bool) $_POST['gvm_redirect'] : false;
+		update_post_meta( $post_id, Gvm_Post::REDIRECT, $redirect );
+
 		if ( isset( $_POST['gvm_price'] ) ) {
 			$price = (float) wp_unslash( $_POST['gvm_price'] );
 			update_post_meta( $post_id, Gvm_Post::PRICE, $price <= 0 ? '' : max( 0.01, min( 10, $price ) ) );
 		}
 
-		if ( isset( $_POST['gvm_template'] ) ) {
-			update_post_meta( $post_id, Gvm_Post::TEMPLATE, sanitize_key( wp_unslash( $_POST['gvm_template'] ) ) );
+		if ( isset( $_POST['gvm_download'] ) ) {
+			$filename = sanitize_file_name( wp_basename( (string) wp_unslash( $_POST['gvm_download'] ) ) );
+			update_post_meta( $post_id, Gvm_Post::DOWNLOAD, $filename );
 		}
 
 		if ( isset( $_POST['gvm_hide_strategy'] ) ) {
@@ -164,6 +192,10 @@ class Gvm_Post_Meta {
 		if ( isset( $_POST['gvm_reference'] ) ) {
 			$reference = Gvm_Post::sanitize_reference( wp_unslash( $_POST['gvm_reference'] ) );
 			update_post_meta( $post_id, Gvm_Post::REFERENCE, $reference );
+		}
+
+		if ( isset( $_POST['gvm_cond'] ) ) {
+			update_post_meta( $post_id, Gvm_Post::COND, Gvm_Post::sanitize_cond( wp_unslash( $_POST['gvm_cond'] ) ) );
 		}
 	}
 }
