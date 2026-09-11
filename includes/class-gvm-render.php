@@ -129,6 +129,7 @@ class Gvm_Render {
 						'reference'       => Gvm_Download::file_reference( $config['reference'], $config['download'] ),
 						'metadata_title'  => get_the_title( $post ),
 						'cond'            => isset( $config['cond'] ) ? $config['cond'] : '',
+						'category'        => isset( $config['category'] ) ? $config['category'] : '',
 						'download'        => true,
 						'download_to'     => Gvm_Download::download_url( $post->ID, $config['download'] ),
 						'filename'        => $config['download'],
@@ -153,6 +154,7 @@ class Gvm_Render {
 						'reference'       => $config['reference'],
 						'metadata_title'  => get_the_title( $post ),
 						'cond'            => isset( $config['cond'] ) ? $config['cond'] : '',
+						'category'        => isset( $config['category'] ) ? $config['category'] : '',
 						'redirect'        => true,
 						'redirect_to'     => get_permalink( $post ),
 						'reading_words'   => $stats['words'],
@@ -173,6 +175,7 @@ class Gvm_Render {
 				'reference'      => $config['reference'],
 				'metadata_title' => get_the_title( $post ),
 				'cond'           => isset( $config['cond'] ) ? $config['cond'] : '',
+				'category'       => isset( $config['category'] ) ? $config['category'] : '',
 			)
 		);
 	}
@@ -197,6 +200,7 @@ class Gvm_Render {
 				'reference'      => '',
 				'metadata_title' => '',
 				'cond'           => '',
+				'category'       => '',
 				'redirect'       => false,
 				'redirect_to'    => '',
 				'download'       => false,
@@ -229,6 +233,11 @@ class Gvm_Render {
 
 		if ( '' !== (string) $args['metadata_title'] ) {
 			$attrs['data-gvm-metadata-title'] = (string) $args['metadata_title'];
+		}
+
+		$category = Gvm_Post::sanitize_category( (string) $args['category'] );
+		if ( '' !== $category ) {
+			$attrs['data-gvm-category'] = $category;
 		}
 
 		if ( ! empty( $args['download'] ) ) {

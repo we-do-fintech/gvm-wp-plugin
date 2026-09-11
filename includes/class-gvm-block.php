@@ -48,6 +48,7 @@ class Gvm_Block {
 					'reference'      => array( 'type' => 'string', 'default' => '' ),
 					'title'          => array( 'type' => 'string', 'default' => '' ),
 					'cond'           => array( 'type' => 'string', 'default' => '' ),
+					'category'       => array( 'type' => 'string', 'default' => '' ),
 				),
 			)
 		);
@@ -59,9 +60,10 @@ class Gvm_Block {
 				'editor_script'   => 'gvm-editor',
 				'render_callback' => array( __CLASS__, 'render_download_block' ),
 				'attributes'      => array(
-					'file'  => array( 'type' => 'string', 'default' => '' ),
-					'price' => array( 'type' => 'string', 'default' => '' ),
-					'cond'  => array( 'type' => 'string', 'default' => '' ),
+					'file'     => array( 'type' => 'string', 'default' => '' ),
+					'price'    => array( 'type' => 'string', 'default' => '' ),
+					'cond'     => array( 'type' => 'string', 'default' => '' ),
+					'category' => array( 'type' => 'string', 'default' => '' ),
 				),
 			)
 		);
@@ -86,6 +88,7 @@ class Gvm_Block {
 				'reference'      => isset( $attributes['reference'] ) ? $attributes['reference'] : '',
 				'metadata_title' => isset( $attributes['title'] ) ? $attributes['title'] : '',
 				'cond'           => isset( $attributes['cond'] ) ? $attributes['cond'] : '',
+				'category'       => isset( $attributes['category'] ) ? $attributes['category'] : '',
 			)
 		);
 	}
@@ -112,6 +115,7 @@ class Gvm_Block {
 				'price'       => isset( $attributes['price'] ) ? $attributes['price'] : '',
 				'reference'   => Gvm_Download::file_reference( $config['reference'], $file ),
 				'cond'        => isset( $attributes['cond'] ) ? $attributes['cond'] : '',
+				'category'    => isset( $attributes['category'] ) ? $attributes['category'] : '',
 				'download'    => true,
 				'download_to' => Gvm_Download::download_url( $post->ID, $file ),
 				'filename'    => $file,

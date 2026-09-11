@@ -24,6 +24,7 @@ class Gvm_Post {
 	const COND          = '_gvm_cond';
 	const REDIRECT      = '_gvm_redirect';
 	const DOWNLOAD      = '_gvm_download';
+	const CATEGORY      = '_gvm_category';
 
 	/**
 	 * Register hooks.
@@ -78,6 +79,10 @@ class Gvm_Post {
 				'default' => false,
 			),
 			self::DOWNLOAD      => array(
+				'type'    => 'string',
+				'default' => '',
+			),
+			self::CATEGORY      => array(
 				'type'    => 'string',
 				'default' => '',
 			),
@@ -146,6 +151,8 @@ class Gvm_Post {
 				return (bool) $value;
 			case self::DOWNLOAD:
 				return sanitize_file_name( (string) $value );
+			case self::CATEGORY:
+				return self::sanitize_category( $value );
 		}
 
 		return $value;
@@ -178,6 +185,18 @@ class Gvm_Post {
 		}
 
 		return substr( $reference, 0, 60 );
+	}
+
+	/**
+	 * Sanitize a category (data-gvm-category, max 64 chars).
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string
+	 */
+	public static function sanitize_category( $value ) {
+		$category = sanitize_text_field( (string) $value );
+
+		return mb_substr( $category, 0, 64 );
 	}
 
 	/**
@@ -215,6 +234,7 @@ class Gvm_Post {
 			'cond'          => (string) get_post_meta( $post_id, self::COND, true ),
 			'redirect'      => (bool) get_post_meta( $post_id, self::REDIRECT, true ),
 			'download'      => (string) get_post_meta( $post_id, self::DOWNLOAD, true ),
+			'category'      => (string) get_post_meta( $post_id, self::CATEGORY, true ),
 		);
 
 		$price = (float) $config['price'];

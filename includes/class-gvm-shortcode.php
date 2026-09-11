@@ -40,6 +40,7 @@ class Gvm_Shortcode {
 			'reference'      => '',
 			'title'          => '',
 			'cond'           => '',
+			'category'       => '',
 		);
 	}
 
@@ -64,6 +65,7 @@ class Gvm_Shortcode {
 				'reference'      => $atts['reference'],
 				'metadata_title' => $atts['title'],
 				'cond'           => $atts['cond'],
+				'category'       => $atts['category'],
 			)
 		);
 	}
@@ -93,6 +95,7 @@ class Gvm_Shortcode {
 				'reference'      => $atts['reference'],
 				'metadata_title' => $atts['title'],
 				'cond'           => $atts['cond'],
+				'category'       => $atts['category'],
 			)
 		);
 	}
@@ -123,8 +126,7 @@ class Gvm_Shortcode {
 		$filename = sanitize_file_name( (string) $atts['file'] );
 
 		if ( '' === $filename ) {
-			$files    = $config['download'];
-			$filename = isset( $files[0] ) ? $files[0] : '';
+			$filename = sanitize_file_name( (string) $config['download'] );
 		}
 
 		if ( '' === $filename ) {
@@ -137,6 +139,7 @@ class Gvm_Shortcode {
 				'price'       => $atts['price'],
 				'reference'   => Gvm_Download::file_reference( $config['reference'], $filename ),
 				'cond'        => $atts['cond'],
+				'category'    => $atts['category'],
 				'download'    => true,
 				'download_to' => Gvm_Download::download_url( $post->ID, $filename ),
 				'filename'    => $filename,

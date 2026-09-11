@@ -54,6 +54,7 @@ Supported attributes (hyphen and underscore forms are equivalent):
 - `reference` — `data-gvm-reference` (auto-generated from slug/post ID when empty).
 - `title` — `data-gvm-metadata-title`.
 - `cond` — `data-gvm-cond` condition expression (applied at page level), e.g. `ab > 0.1 AND language includes 'pl'`.
+- `category` — `data-gvm-category` (max 64 chars), sent with the commitment.
 
 The same controls (including the condition) are available per-article in the
 meta box / sidebar panel and as block attributes.

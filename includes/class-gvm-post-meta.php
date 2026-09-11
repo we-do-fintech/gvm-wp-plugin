@@ -130,6 +130,12 @@ class Gvm_Post_Meta {
 			<input type="text" id="gvm_cond" name="gvm_cond" class="widefat" value="<?php echo esc_attr( $config['cond'] ); ?>" placeholder="<?php echo esc_attr( "ab > 0.1 AND language includes 'pl'" ); ?>" />
 			<span class="description"><?php esc_html_e( 'Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp' ); ?></span>
 		</p>
+
+		<p>
+			<label for="gvm_category"><?php esc_html_e( 'Category', 'gvm-wp' ); ?></label>
+			<input type="text" id="gvm_category" name="gvm_category" class="widefat" maxlength="64" value="<?php echo esc_attr( $config['category'] ); ?>" placeholder="<?php esc_attr_e( 'e.g. reports', 'gvm-wp' ); ?>" />
+			<span class="description"><?php esc_html_e( 'Optional category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp' ); ?></span>
+		</p>
 		<?php
 	}
 
@@ -196,6 +202,10 @@ class Gvm_Post_Meta {
 
 		if ( isset( $_POST['gvm_cond'] ) ) {
 			update_post_meta( $post_id, Gvm_Post::COND, Gvm_Post::sanitize_cond( wp_unslash( $_POST['gvm_cond'] ) ) );
+		}
+
+		if ( isset( $_POST['gvm_category'] ) ) {
+			update_post_meta( $post_id, Gvm_Post::CATEGORY, Gvm_Post::sanitize_category( wp_unslash( $_POST['gvm_category'] ) ) );
 		}
 	}
 }

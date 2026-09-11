@@ -46,7 +46,8 @@
 		reference: '_gvm_reference',
 		cond: '_gvm_cond',
 		redirect: '_gvm_redirect',
-		download: '_gvm_download'
+		download: '_gvm_download',
+		category: '_gvm_category'
 	};
 
 	var STRATEGIES = [
@@ -90,6 +91,12 @@
 					value: atts.cond,
 					onChange: function (value) { setAttributes({ cond: value }); },
 					help: __('Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp')
+				}),
+				el(TextControl, {
+					label: __('Category', 'gvm-wp'),
+					value: atts.category,
+					onChange: function (value) { setAttributes({ category: value }); },
+					help: __('Optional category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp')
 				}),
 				el(SelectControl, {
 					label: __('Hide strategy', 'gvm-wp'),
@@ -137,7 +144,8 @@
 			hide_words: { type: 'integer', default: 0 },
 			reference: { type: 'string', default: '' },
 			title: { type: 'string', default: '' },
-			cond: { type: 'string', default: '' }
+			cond: { type: 'string', default: '' },
+			category: { type: 'string', default: '' }
 		},
 		edit: function (props) {
 			var blockProps = useBlockProps();
@@ -164,7 +172,8 @@
 		attributes: {
 			file: { type: 'string', default: '' },
 			price: { type: 'string', default: '' },
-			cond: { type: 'string', default: '' }
+			cond: { type: 'string', default: '' },
+			category: { type: 'string', default: '' }
 		},
 		edit: function (props) {
 			var blockProps = useBlockProps();
@@ -197,6 +206,12 @@
 							value: atts.cond,
 							onChange: function (value) { setAttributes({ cond: value }); },
 							help: __('Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp')
+						}),
+						el(TextControl, {
+							label: __('Category', 'gvm-wp'),
+							value: atts.category,
+							onChange: function (value) { setAttributes({ category: value }); },
+							help: __('Optional category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp')
 						})
 					)
 				),
@@ -281,6 +296,7 @@
 		var cond = useMetaValue(META.cond);
 		var redirect = useMetaValue(META.redirect);
 		var download = useMetaValue(META.download);
+		var category = useMetaValue(META.category);
 
 		return el(PluginDocumentSettingPanel, {
 			name: 'gvm-paywall-panel',
@@ -356,6 +372,12 @@
 					value: cond || '',
 					onChange: function (value) { setMeta(META.cond, value); },
 					help: __('Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp')
+				}),
+				el(TextControl, {
+					label: __('Category', 'gvm-wp'),
+					value: category || '',
+					onChange: function (value) { setMeta(META.category, value); },
+					help: __('Optional category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp')
 				})
 			)
 		);

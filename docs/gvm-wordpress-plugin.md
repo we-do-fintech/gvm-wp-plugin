@@ -60,6 +60,7 @@ Each article (on enabled content types) has a **GetViaMsg Paywall** panel
 | Hide sections / percent / words | How much content to show before the block |
 | Reference | Unique identifier (defaults to the article slug or ID) |
 | Condition | Optional condition for showing the paywall |
+| Category | Optional category sent with the commitment (`data-gvm-category`, max 64 chars) |
 
 ---
 
@@ -103,7 +104,7 @@ which the plugin fills in automatically.
 ```
 
 Attributes: `price`, `hide-strategy`, `hide-percent`, `hide-sections`, `hide-words`,
-`reference`, `title`, `cond` (hyphen and underscore forms are equivalent).
+`reference`, `title`, `cond`, `category` (hyphen and underscore forms are equivalent).
 
 ### `[gvm-protected-content]` — content only after payment
 
