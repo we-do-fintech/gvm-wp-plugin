@@ -79,7 +79,7 @@ Yes. Run `build.sh vendor /path/to/gvm-sdk/dist/gvm.js` to bundle a copy in
 * Categories are resolved dynamically from `https://overlay.<env>.gvm.wdft.ovh/categories` with a bundled fallback; defaults are `article` (pages/posts) and `report_pdf` (files).
 * Hide detail fields moved under "Advanced"; the condition field is now last.
 * Currency is a select (PLN today) ready for future currencies.
-* Built-in templates now ship with the plugin: `payment-with-terms`, `paywall-sticky` and `paywall-inline`.
+* Built-in templates now ship with the plugin: `payment-with-terms`, `paywall-sticky`, `paywall-inline` and a refreshed download paywall.
 
 = 0.1.0 =
 * Initial release.
