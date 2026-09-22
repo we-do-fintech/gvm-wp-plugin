@@ -64,9 +64,8 @@ class Gvm_Post_Meta {
 	public static function render( $post ) {
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE_NAME );
 
-		Gvm_Download::enqueue_upload_assets();
-
-		$config = Gvm_Post::get_config( $post->ID );
+		$config     = Gvm_Post::get_config( $post->ID );
+		$categories = Gvm_Categories::all();
 		?>
 		<p>
 			<label>
@@ -89,12 +88,6 @@ class Gvm_Post_Meta {
 		</p>
 
 		<p>
-			<label><?php esc_html_e( 'Download file', 'gvm-wp' ); ?></label>
-			<?php Gvm_Download::upload_field( (string) $config['download'] ); ?>
-			<span class="description"><?php esc_html_e( 'Protected file to sell via download. Leave empty to disable the download strategy.', 'gvm-wp' ); ?></span>
-		</p>
-
-		<p>
 			<label for="gvm_hide_strategy"><?php esc_html_e( 'Hide strategy', 'gvm-wp' ); ?></label>
 			<select id="gvm_hide_strategy" name="gvm_hide_strategy" class="widefat">
 				<option value="none" <?php selected( $config['hide_strategy'], 'none' ); ?>><?php esc_html_e( 'None', 'gvm-wp' ); ?></option>
@@ -104,37 +97,49 @@ class Gvm_Post_Meta {
 			</select>
 		</p>
 
-		<p>
-			<label for="gvm_hide_sections"><?php esc_html_e( 'Hide sections', 'gvm-wp' ); ?></label>
-			<input type="number" id="gvm_hide_sections" name="gvm_hide_sections" min="0" class="widefat" value="<?php echo esc_attr( (string) $config['hide_sections'] ); ?>" />
-		</p>
+		<details>
+			<summary><?php esc_html_e( 'Advanced — how much to hide', 'gvm-wp' ); ?></summary>
 
-		<p>
-			<label for="gvm_hide_percent"><?php esc_html_e( 'Hide percent (1-100)', 'gvm-wp' ); ?></label>
-			<input type="number" id="gvm_hide_percent" name="gvm_hide_percent" min="0" max="100" class="widefat" value="<?php echo esc_attr( (string) $config['hide_percent'] ); ?>" />
-		</p>
+			<p>
+				<label for="gvm_hide_sections"><?php esc_html_e( 'Hide after sections', 'gvm-wp' ); ?></label>
+				<input type="number" id="gvm_hide_sections" name="gvm_hide_sections" min="0" class="widefat" value="<?php echo esc_attr( (string) $config['hide_sections'] ); ?>" />
+				<span class="description"><?php esc_html_e( 'Keep the first N content blocks visible.', 'gvm-wp' ); ?></span>
+			</p>
 
-		<p>
-			<label for="gvm_hide_words"><?php esc_html_e( 'Hide words', 'gvm-wp' ); ?></label>
-			<input type="number" id="gvm_hide_words" name="gvm_hide_words" min="0" class="widefat" value="<?php echo esc_attr( (string) $config['hide_words'] ); ?>" />
-		</p>
+			<p>
+				<label for="gvm_hide_percent"><?php esc_html_e( 'Hide after percent (1-100)', 'gvm-wp' ); ?></label>
+				<input type="number" id="gvm_hide_percent" name="gvm_hide_percent" min="0" max="100" class="widefat" value="<?php echo esc_attr( (string) $config['hide_percent'] ); ?>" />
+			</p>
+
+			<p>
+				<label for="gvm_hide_words"><?php esc_html_e( 'Hide after words', 'gvm-wp' ); ?></label>
+				<input type="number" id="gvm_hide_words" name="gvm_hide_words" min="0" class="widefat" value="<?php echo esc_attr( (string) $config['hide_words'] ); ?>" />
+			</p>
+
+			<p class="description"><?php esc_html_e( 'Only one is applied, in this order: sections, percent, words.', 'gvm-wp' ); ?></p>
+		</details>
 
 		<p>
 			<label for="gvm_reference"><?php esc_html_e( 'Reference', 'gvm-wp' ); ?></label>
-			<input type="text" id="gvm_reference" name="gvm_reference" class="widefat" value="<?php echo esc_attr( $config['reference'] ); ?>" placeholder="<?php echo esc_attr( Gvm_Post::reference( $post->ID ) ); ?>" />
-			<span class="description"><?php esc_html_e( 'Leave empty to auto-generate from slug or post ID.', 'gvm-wp' ); ?></span>
+			<input type="text" id="gvm_reference" name="gvm_reference" class="widefat" maxlength="59" value="<?php echo esc_attr( $config['reference'] ); ?>" placeholder="<?php echo esc_attr( Gvm_Post::reference( $post->ID ) ); ?>" />
+			<span class="description"><?php esc_html_e( 'Leave empty to auto-generate from slug or post ID. 3-59 characters.', 'gvm-wp' ); ?></span>
+		</p>
+
+		<p>
+			<label for="gvm_category"><?php esc_html_e( 'Category', 'gvm-wp' ); ?></label>
+			<input type="text" id="gvm_category" name="gvm_category" class="widefat" list="gvm-categories-list" maxlength="64" value="<?php echo esc_attr( $config['category'] ); ?>" placeholder="<?php echo esc_attr( Gvm_Categories::default_post_category() ); ?>" />
+			<datalist id="gvm-categories-list">
+				<?php foreach ( $categories as $name => $pretty ) : ?>
+					<option value="<?php echo esc_attr( $name ); ?>"><?php echo esc_html( $pretty ); ?></option>
+				<?php endforeach; ?>
+			</datalist>
+			<span class="description"><?php esc_html_e( 'Category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp' ); ?></span>
 		</p>
 
 		<p>
 			<label for="gvm_cond"><?php esc_html_e( 'Condition', 'gvm-wp' ); ?></label>
 			<input type="text" id="gvm_cond" name="gvm_cond" class="widefat" value="<?php echo esc_attr( $config['cond'] ); ?>" placeholder="<?php echo esc_attr( "ab > 0.1 AND language includes 'pl'" ); ?>" />
 			<span class="description"><?php esc_html_e( 'Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp' ); ?></span>
-		</p>
-
-		<p>
-			<label for="gvm_category"><?php esc_html_e( 'Category', 'gvm-wp' ); ?></label>
-			<input type="text" id="gvm_category" name="gvm_category" class="widefat" maxlength="64" value="<?php echo esc_attr( $config['category'] ); ?>" placeholder="<?php esc_attr_e( 'e.g. reports', 'gvm-wp' ); ?>" />
-			<span class="description"><?php esc_html_e( 'Optional category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp' ); ?></span>
 		</p>
 		<?php
 	}
@@ -173,14 +178,9 @@ class Gvm_Post_Meta {
 			update_post_meta( $post_id, Gvm_Post::PRICE, $price <= 0 ? '' : max( 0.01, min( 10, $price ) ) );
 		}
 
-		if ( isset( $_POST['gvm_download'] ) ) {
-			$filename = sanitize_file_name( wp_basename( (string) wp_unslash( $_POST['gvm_download'] ) ) );
-			update_post_meta( $post_id, Gvm_Post::DOWNLOAD, $filename );
-		}
-
 		if ( isset( $_POST['gvm_hide_strategy'] ) ) {
 			$strategy = sanitize_text_field( wp_unslash( $_POST['gvm_hide_strategy'] ) );
-			update_post_meta( $post_id, Gvm_Post::HIDE_STRATEGY, in_array( $strategy, array( 'none', 'blur', 'hide', 'mangle-blur' ), true ) ? $strategy : 'hide' );
+			update_post_meta( $post_id, Gvm_Post::HIDE_STRATEGY, in_array( $strategy, Gvm_Settings::hide_strategies(), true ) ? $strategy : Gvm_Settings::default_hide_strategy() );
 		}
 
 		if ( isset( $_POST['gvm_hide_percent'] ) ) {

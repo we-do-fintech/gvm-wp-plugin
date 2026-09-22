@@ -4,7 +4,7 @@ Tags: paywall, monetization, sms, subscription, content
 Requires at least: 6.3
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,9 +19,12 @@ Features:
 
 * Global settings (tenant, secret, environment, currency, defaults) via the Settings API.
 * Per-article controls in the classic editor meta box and the Gutenberg sidebar.
-* `[gvm]` shortcode and a server-rendered Gutenberg block for wrapping content.
+* `[gvm]` shortcode and a server-rendered Gutenberg block for wrapping content (inline template).
 * `[gvm-protected-content]` shortcode with server-side `gvm-signature` verification (HMAC-SHA256).
-* Configurable hide strategies (hide / blur / mangle-blur) with sections, percent or words.
+* Configurable hide strategies (hide / blur / mangle-blur) with sections, percent or words under "Advanced".
+* Built-in templates: sticky paywall (page/post), inline paywall (blocks/shortcodes), payment with a terms gate and a download trigger, plus a link to the template gallery.
+* File downloads are sold through the "Paid download" block or `[gvm-download]` shortcode (no per-article download field).
+* Content categories with remote catalog lookup and a built-in fallback (defaults: `article` for pages/posts, `report_pdf` for files).
 * gvm.js is enqueued as an ES module (WordPress 6.3+) only when a paywall is present.
 
 == Installation ==
@@ -67,6 +70,16 @@ Yes. Run `build.sh vendor /path/to/gvm-sdk/dist/gvm.js` to bundle a copy in
 `assets/gvm.js`, which the plugin then prefers over the CDN.
 
 == Changelog ==
+
+= 0.1.1 =
+* Removed the per-article "Download file" field; files are sold via the "Paid download" block or `[gvm-download]` shortcode.
+* Default hide strategy is now `mangle-blur` (configurable in Settings → GetViaMsg).
+* Added an `inline` template used by the "Paid content" block and the `[gvm]` / `[gvm-protected-content]` shortcodes.
+* The "Paid download" block/shortcode accepts an explicit `reference` and defaults to the `report_pdf` category.
+* Categories are resolved dynamically from `https://overlay.<env>.gvm.wdft.ovh/categories` with a bundled fallback; defaults are `article` (pages/posts) and `report_pdf` (files).
+* Hide detail fields moved under "Advanced"; the condition field is now last.
+* Currency is a select (PLN today) ready for future currencies.
+* Built-in templates now ship with the plugin: `payment-with-terms`, `paywall-sticky` and `paywall-inline`.
 
 = 0.1.0 =
 * Initial release.

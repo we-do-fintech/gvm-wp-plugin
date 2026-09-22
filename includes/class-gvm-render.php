@@ -118,27 +118,6 @@ class Gvm_Render {
 
 		$stats = self::reading_stats( $content );
 
-		if ( '' !== $config['download'] ) {
-			// Download strategy: teaser + a "download" trigger. The endpoint
-			// serves the gated file after signature verification.
-			return self::teaser( $content, $config )
-				. self::paywall(
-					'',
-					array(
-						'price'           => $config['price'],
-						'reference'       => Gvm_Download::file_reference( $config['reference'], $config['download'] ),
-						'metadata_title'  => get_the_title( $post ),
-						'cond'            => isset( $config['cond'] ) ? $config['cond'] : '',
-						'category'        => isset( $config['category'] ) ? $config['category'] : '',
-						'download'        => true,
-						'download_to'     => Gvm_Download::download_url( $post->ID, $config['download'] ),
-						'filename'        => $config['download'],
-						'reading_words'   => $stats['words'],
-						'reading_minutes' => $stats['minutes'],
-					)
-				);
-		}
-
 		if ( ! empty( $config['redirect'] ) ) {
 			if ( self::is_unlocked( $config['reference'] ) ) {
 				return $content;
@@ -193,7 +172,7 @@ class Gvm_Render {
 			array(
 				'price'          => Gvm_Settings::default_price(),
 				'template'       => Gvm_Settings::default_template(),
-				'hide_strategy'  => 'hide',
+				'hide_strategy'  => Gvm_Settings::default_hide_strategy(),
 				'hide_percent'   => 0,
 				'hide_sections'  => 6,
 				'hide_words'     => 0,
@@ -208,7 +187,7 @@ class Gvm_Render {
 			)
 		);
 
-		$strategy = in_array( $args['hide_strategy'], array( 'none', 'blur', 'hide', 'mangle-blur' ), true ) ? $args['hide_strategy'] : 'hide';
+		$strategy = in_array( $args['hide_strategy'], Gvm_Settings::hide_strategies(), true ) ? $args['hide_strategy'] : Gvm_Settings::default_hide_strategy();
 
 		$condition = Gvm_Post::sanitize_cond( (string) $args['cond'] );
 		if ( '' !== $condition ) {
@@ -236,6 +215,9 @@ class Gvm_Render {
 		}
 
 		$category = Gvm_Post::sanitize_category( (string) $args['category'] );
+		if ( '' === $category ) {
+			$category = Gvm_Categories::default_post_category();
+		}
 		if ( '' !== $category ) {
 			$attrs['data-gvm-category'] = $category;
 		}
@@ -452,7 +434,8 @@ class Gvm_Render {
 	 * @param mixed $price Raw price.
 	 * @return string
 	 */
-	public static function format_price( $price ) {		$price = (float) $price;
+	public static function format_price( $price ) {
+		$price = (float) $price;
 
 		if ( $price <= 0 ) {
 			$price = Gvm_Settings::default_price();
@@ -528,13 +511,15 @@ class Gvm_Render {
 	 * @return string
 	 */
 	public static function template_html( $slug ) {
-		if ( 'payment' === $slug || 'paywall' === $slug || 'download' === $slug ) {
+		if ( 'payment' === $slug || 'paywall' === $slug || 'inline' === $slug || 'download' === $slug ) {
 			$option = '';
 
 			if ( 'payment' === $slug ) {
 				$option = Gvm_Settings::template_payment();
 			} elseif ( 'paywall' === $slug ) {
 				$option = Gvm_Settings::template_paywall();
+			} elseif ( 'inline' === $slug ) {
+				$option = Gvm_Settings::template_inline();
 			} else {
 				$option = Gvm_Settings::template_download();
 			}

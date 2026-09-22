@@ -33,7 +33,7 @@ class Gvm_Shortcode {
 	private static function atts() {
 		return array(
 			'price'          => Gvm_Settings::default_price(),
-			'hide_strategy'  => 'hide',
+			'hide_strategy'  => Gvm_Settings::default_hide_strategy(),
 			'hide_percent'   => 0,
 			'hide_sections'  => 6,
 			'hide_words'     => 0,
@@ -58,6 +58,7 @@ class Gvm_Shortcode {
 			null === $content ? '' : do_shortcode( $content ),
 			array(
 				'price'          => $atts['price'],
+				'template'       => 'inline',
 				'hide_strategy'  => $atts['hide_strategy'],
 				'hide_percent'   => $atts['hide_percent'],
 				'hide_sections'  => $atts['hide_sections'],
@@ -88,6 +89,7 @@ class Gvm_Shortcode {
 			'',
 			array(
 				'price'          => $atts['price'],
+				'template'       => 'inline',
 				'hide_strategy'  => $atts['hide_strategy'],
 				'hide_percent'   => $atts['hide_percent'],
 				'hide_sections'  => $atts['hide_sections'],
@@ -103,10 +105,10 @@ class Gvm_Shortcode {
 	/**
 	 * [gvm-download] shortcode: a gated file download.
 	 *
-	 * With a `file` attribute it gates that single file; without it, it uses the
-	 * first file from the post's "Download file" list.
+	 * The `file` attribute selects the file. `reference` optionally overrides the
+	 * auto-generated, per-file reference.
 	 *
-	 * @param array $atts Attributes (file, price, cond).
+	 * @param array $atts Attributes (file, reference, price, cond, category).
 	 * @return string
 	 */
 	public static function shortcode_download( $atts ) {
@@ -123,23 +125,29 @@ class Gvm_Shortcode {
 		}
 
 		$config   = Gvm_Post::get_config( $post->ID );
-		$filename = sanitize_file_name( (string) $atts['file'] );
-
-		if ( '' === $filename ) {
-			$filename = sanitize_file_name( (string) $config['download'] );
-		}
+		$filename = sanitize_file_name( wp_basename( (string) $atts['file'] ) );
 
 		if ( '' === $filename ) {
 			return '';
+		}
+
+		$reference = Gvm_Post::sanitize_reference( $atts['reference'] );
+		if ( '' === $reference ) {
+			$reference = Gvm_Download::file_reference( $config['reference'], $filename );
+		}
+
+		$category = Gvm_Post::sanitize_category( $atts['category'] );
+		if ( '' === $category ) {
+			$category = Gvm_Categories::default_download_category();
 		}
 
 		return Gvm_Render::paywall(
 			'',
 			array(
 				'price'       => $atts['price'],
-				'reference'   => Gvm_Download::file_reference( $config['reference'], $filename ),
+				'reference'   => $reference,
 				'cond'        => $atts['cond'],
-				'category'    => $atts['category'],
+				'category'    => $category,
 				'download'    => true,
 				'download_to' => Gvm_Download::download_url( $post->ID, $filename ),
 				'filename'    => $filename,

@@ -14,6 +14,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_SRC="$ROOT/../gvm-sdk/dist/gvm.js"
+DEFAULT_CATEGORIES="$ROOT/../gvm-sdk-admin/categories.json"
 SLUG="gvm-wp-plugin"
 VERSION="$(grep -m1 'Version:' "$ROOT/gvm-wp.php" | sed -E 's/.*Version:[[:space:]]*//')"
 VERSION="${VERSION:-0.1.0}"
@@ -31,6 +32,18 @@ vendor_sdk() {
 		echo "Build the gvm-sdk first (cd ../gvm-sdk && pnpm build), then re-run:" >&2
 		echo "  $0 $DEFAULT_SRC" >&2
 		echo "(Without a vendored copy the plugin will load gvm.js from esm.sh.)" >&2
+	fi
+}
+
+vendor_categories() {
+	local src="${1:-$DEFAULT_CATEGORIES}"
+
+	if [[ -f "$src" ]]; then
+		mkdir -p "$ROOT/assets"
+		cp "$src" "$ROOT/assets/categories.json"
+		echo "Vendored categories.json from $src"
+	else
+		echo "categories.json not found at $src (the plugin will use its built-in catalog)." >&2
 	fi
 }
 
@@ -73,9 +86,9 @@ build_zip() {
 }
 
 case "${1:-vendor}" in
-	vendor) vendor_sdk "${2:-}" ;;
+	vendor) vendor_sdk "${2:-}"; vendor_categories ;;
 	zip) build_zip ;;
-	all) vendor_sdk "${2:-}"; build_zip ;;
+	all) vendor_sdk "${2:-}"; vendor_categories; build_zip ;;
 	*.js) vendor_sdk "$1" ;;
 	*) echo "usage: $0 [vendor|zip|all] [path/to/gvm.js]" >&2; exit 1 ;;
 esac

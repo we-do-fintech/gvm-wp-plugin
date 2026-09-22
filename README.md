@@ -23,10 +23,17 @@ server-side signature verification. Plain PHP, no framework.
 | Secret | `gvm_secret` | HMAC-SHA256 key used for server-side `gvm-signature` verification. Stored in options only and never rendered on the frontend. |
 | Environment / API URL | `gvm_env_url` | A named environment (`demo`, `local`, `prod`, `qa`, `dev`) maps to `data-gvm-env`; a full URL maps to `data-gvm-endpoint`. |
 
-Optional defaults: currency (`gvm_currency`, default `PLN`), default price
-(`gvm_default_price`), JS callback (`gvm_callback`), enabled post types
-(`gvm_post_types`, multi-select), and analytics trackers (`gvm_analytics`,
-`dl` / `gtag` / `custom`, mapped to `data-gvm-analytics`).
+Optional defaults: currency (`gvm_currency`, a select — currently `PLN`),
+default price (`gvm_default_price`), default hide strategy
+(`gvm_default_hide_strategy`, default `mangle-blur`), JS callback
+(`gvm_callback`), enabled post types (`gvm_post_types`, multi-select), and
+analytics trackers (`gvm_analytics`, `dl` / `gtag` / `custom`, mapped to
+`data-gvm-analytics`).
+
+The content-category catalog is loaded dynamically from
+`https://overlay.<env>.gvm.wdft.ovh/categories` (cached for 12 hours) and falls
+back to a bundled `assets/categories.json` / the built-in catalog. Defaults are
+`article` for page/post paywalls and `report_pdf` for downloads.
 
 ## Usage
 
@@ -34,7 +41,10 @@ Optional defaults: currency (`gvm_currency`, default `PLN`), default price
 
 Edit a post of an enabled post type and enable the paywall in the
 **GetViaMsg Paywall** meta box (classic editor) or the Gutenberg sidebar panel.
-The entire content is wrapped in a paywall.
+The entire content is wrapped in a paywall. Hide detail fields (sections,
+percent, words) live under **Advanced**; the condition field is last. Files are
+no longer configured here — use the **Paid download** block or the
+`[gvm-download]` shortcode.
 
 ### Shortcode
 
@@ -57,7 +67,8 @@ Supported attributes (hyphen and underscore forms are equivalent):
 - `category` — `data-gvm-category` (max 64 chars), sent with the commitment.
 
 The same controls (including the condition) are available per-article in the
-meta box / sidebar panel and as block attributes.
+meta box / sidebar panel and as block attributes. The `[gvm]` and
+`[gvm-protected-content]` shortcodes use the **inline** template.
 
 ### Server-side protected content
 
@@ -74,18 +85,22 @@ The content is only rendered when the request carries a valid `gvm-signature`
 
 Two server-rendered blocks are registered:
 
-- **GetViaMsg — Paid content** (`gvm/paywall`) — wraps content in a paywall (hide strategy).
-- **GetViaMsg — Paid download** (`gvm/download`) — sells a single file download, with an upload button.
+- **GetViaMsg — Paid content** (`gvm/paywall`) — wraps content in an inline paywall (hide strategy).
+- **GetViaMsg — Paid download** (`gvm/download`) — sells a single file download, with an upload button and an optional explicit `reference`.
 
 ### Download (gated file)
 
-Set a **Download file** on a post (a filename stored in the protected
-`wp-content/uploads/gvm/` directory — blocked from direct HTTP access by a
-generated `.htaccess`). The plugin renders a download trigger; after payment the
-`?gvm_download=<post_id>&file=<filename>` endpoint verifies the signature
-(per-file reference) and streams the file with `Content-Disposition: attachment`.
-The same download can be embedded anywhere with the `gvm/download` block (with an
-upload button) or the `[gvm-download file="x.pdf"]` shortcode.
+Upload the file with the **Upload file** button in the **Paid download** block
+(or the `[gvm-download]` shortcode) — the file is stored in the protected
+`wp-content/uploads/gvm/` directory, blocked from direct HTTP access by a
+generated `.htaccess`. The plugin renders a download trigger; after payment the
+`?gvm_download=<post_id>&file=<filename>` endpoint verifies the signature and
+streams the file with `Content-Disposition: attachment`.
+
+The reference is derived from the post reference + file name. For long file
+names, set an explicit **Reference** (3-59 chars) on the block/shortcode; it is
+recorded on save and used by the download endpoint. The block defaults to the
+`report_pdf` category.
 
 ## Signature verification
 
@@ -127,6 +142,20 @@ elsewhere, e.g. `./build.sh /path/to/gvm.js`.
 
 When `assets/gvm.js` exists, the plugin prefers it over the CDN. Override the
 URL at any time with the `gvm_sdk_url` filter.
+
+## Built-in templates
+
+The plugin ships with editable default templates (Settings → GetViaMsg):
+
+- **Payment** — `templates/payment.php`, based on `payment-with-terms` (QR + SMS + consent gate).
+- **Paywall** — `templates/paywall.php`, based on `paywall-sticky` (page/post).
+- **Inline** — `templates/inline.php`, based on `paywall-inline` (blocks/shortcodes).
+- **Download** — `templates/download.php` (gated file trigger).
+
+Each template field links to the template gallery at
+<https://templates.getviamsg.wdft.ovh/> for more designs. `./build.sh` also
+vendors `../gvm-sdk-admin/categories.json` into `assets/categories.json` as the
+offline fallback catalog.
 
 ## Development
 

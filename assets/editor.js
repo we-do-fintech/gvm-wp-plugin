@@ -1,7 +1,8 @@
 /**
  * Gutenberg integration for gvm-wp-plugin.
  *
- * - Registers the "GetViaMsg Paywall" block (server-rendered).
+ * - Registers the "GetViaMsg Paywall" block (server-rendered, inline template).
+ * - Registers the "GetViaMsg Paid download" block.
  * - Adds a "GetViaMsg Paywall" document sidebar panel editing post meta.
  *
  * No build step: plain ES, WordPress globals.
@@ -35,6 +36,12 @@
 	var useDispatch = wp.data.useDispatch;
 
 	var config = window.gvmEditorConfig || { defaults: {} };
+	var DEFAULTS = config.defaults || {};
+	var CATEGORIES = config.categories || [];
+
+	var HIDE_STRATEGY = DEFAULTS.hideStrategy || 'mangle-blur';
+	var POST_CATEGORY = DEFAULTS.category || 'article';
+	var DOWNLOAD_CATEGORY = DEFAULTS.downloadCategory || 'report_pdf';
 
 	var META = {
 		enabled: '_gvm_enabled',
@@ -46,9 +53,10 @@
 		reference: '_gvm_reference',
 		cond: '_gvm_cond',
 		redirect: '_gvm_redirect',
-		download: '_gvm_download',
 		category: '_gvm_category'
 	};
+
+	var CATEGORY_SEQ = 0;
 
 	var STRATEGIES = [
 		{ value: 'none', label: __('None', 'gvm-wp') },
@@ -58,71 +66,73 @@
 	];
 
 	/* ------------------------------------------------------------------ *
-	 * Shared block attribute controls
+	 * Shared controls
 	 * ------------------------------------------------------------------ */
 
-	function BlockControls(props) {
+	function CategoryControl(props) {
+		var listRef = wp.element.useRef(null);
+		if (!listRef.current) {
+			CATEGORY_SEQ++;
+			listRef.current = 'gvm-category-list-' + CATEGORY_SEQ;
+		}
+
+		var listId = listRef.current;
+		var value = props.value || '';
+
+		return el('div', { className: 'components-base-control' },
+			el('label', { className: 'components-base-control__label' }, __('Category', 'gvm-wp')),
+			el('input', {
+				className: 'components-text-control__input',
+				type: 'text',
+				list: listId,
+				value: value,
+				placeholder: props.placeholder || POST_CATEGORY,
+				onChange: function (event) { props.onChange(event.target.value); }
+			}),
+			el('datalist', { id: listId },
+				CATEGORIES.map(function (category) {
+					return el('option', { key: category.name, value: category.name },
+						category.prettyName || category.name);
+				})
+			),
+			props.help ? el('p', { className: 'components-base-control__help' }, props.help) : null
+		);
+	}
+
+	function ConditionControl(props) {
+		return el(TextControl, {
+			label: __('Condition', 'gvm-wp'),
+			value: props.value || '',
+			onChange: props.onChange,
+			help: __('Optional gvm condition (data-gvm-cond), applied at page level. Evaluated last, at the very end of the settings.', 'gvm-wp')
+		});
+	}
+
+	function HideDetailControls(props) {
 		var atts = props.attributes;
 		var setAttributes = props.setAttributes;
 
-		return el(InspectorControls, {},
-			el(PanelBody, { title: __('Paywall settings', 'gvm-wp'), initialOpen: true },
-				el(TextControl, {
-					label: __('Price', 'gvm-wp'),
-					type: 'number',
-					step: '0.01',
-					min: '0.01',
-					max: '10',
-					value: atts.price,
-					onChange: function (value) { setAttributes({ price: value }); }
-				}),
-				el(TextControl, {
-					label: __('Reference', 'gvm-wp'),
-					value: atts.reference,
-					onChange: function (value) { setAttributes({ reference: value }); }
-				}),
-				el(TextControl, {
-					label: __('Title', 'gvm-wp'),
-					value: atts.title,
-					onChange: function (value) { setAttributes({ title: value }); }
-				}),
-				el(TextControl, {
-					label: __('Condition', 'gvm-wp'),
-					value: atts.cond,
-					onChange: function (value) { setAttributes({ cond: value }); },
-					help: __('Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp')
-				}),
-				el(TextControl, {
-					label: __('Category', 'gvm-wp'),
-					value: atts.category,
-					onChange: function (value) { setAttributes({ category: value }); },
-					help: __('Optional category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp')
-				}),
-				el(SelectControl, {
-					label: __('Hide strategy', 'gvm-wp'),
-					value: atts.hide_strategy,
-					options: STRATEGIES,
-					onChange: function (value) { setAttributes({ hide_strategy: value }); }
-				}),
-				el(TextControl, {
-					label: __('Hide sections', 'gvm-wp'),
-					type: 'number',
-					value: atts.hide_sections,
-					onChange: function (value) { setAttributes({ hide_sections: parseInt(value, 10) || 0 }); }
-				}),
-				el(TextControl, {
-					label: __('Hide percent (1-100)', 'gvm-wp'),
-					type: 'number',
-					value: atts.hide_percent,
-					onChange: function (value) { setAttributes({ hide_percent: parseInt(value, 10) || 0 }); }
-				}),
-				el(TextControl, {
-					label: __('Hide words', 'gvm-wp'),
-					type: 'number',
-					value: atts.hide_words,
-					onChange: function (value) { setAttributes({ hide_words: parseInt(value, 10) || 0 }); }
-				})
-			)
+		return el(PanelBody, { title: __('Advanced — how much to hide', 'gvm-wp'), initialOpen: false },
+			el(TextControl, {
+				label: __('Hide after sections', 'gvm-wp'),
+				type: 'number',
+				value: atts.hide_sections,
+				onChange: function (value) { setAttributes({ hide_sections: parseInt(value, 10) || 0 }); },
+				help: __('Keep the first N content blocks visible.', 'gvm-wp')
+			}),
+			el(TextControl, {
+				label: __('Hide after percent (1-100)', 'gvm-wp'),
+				type: 'number',
+				value: atts.hide_percent,
+				onChange: function (value) { setAttributes({ hide_percent: parseInt(value, 10) || 0 }); }
+			}),
+			el(TextControl, {
+				label: __('Hide after words', 'gvm-wp'),
+				type: 'number',
+				value: atts.hide_words,
+				onChange: function (value) { setAttributes({ hide_words: parseInt(value, 10) || 0 }); },
+				help: __('Only one is applied, in this order: sections, percent, words.', 'gvm-wp')
+			})
 		);
 	}
 
@@ -132,28 +142,70 @@
 
 	registerBlockType('gvm/paywall', {
 		title: __('GetViaMsg — Paid content', 'gvm-wp'),
-		description: __('Wrap content in a GetViaMsg paywall.', 'gvm-wp'),
+		description: __('Wrap content in an inline GetViaMsg paywall.', 'gvm-wp'),
 		icon: 'lock',
 		category: 'common',
 		supports: { html: false, reusable: false },
 		attributes: {
 			price: { type: 'string', default: '' },
-			hide_strategy: { type: 'string', default: 'hide' },
+			hide_strategy: { type: 'string', default: HIDE_STRATEGY },
 			hide_percent: { type: 'integer', default: 0 },
 			hide_sections: { type: 'integer', default: 6 },
 			hide_words: { type: 'integer', default: 0 },
 			reference: { type: 'string', default: '' },
 			title: { type: 'string', default: '' },
 			cond: { type: 'string', default: '' },
-			category: { type: 'string', default: '' }
+			category: { type: 'string', default: POST_CATEGORY }
 		},
 		edit: function (props) {
 			var blockProps = useBlockProps();
+			var atts = props.attributes;
+			var setAttributes = props.setAttributes;
 
 			return el('div', blockProps,
-				el(BlockControls, props),
+				el(InspectorControls, {},
+					el(PanelBody, { title: __('Paywall settings', 'gvm-wp'), initialOpen: true },
+						el(TextControl, {
+							label: __('Price', 'gvm-wp'),
+							type: 'number',
+							step: '0.01',
+							min: '0.01',
+							max: '10',
+							value: atts.price,
+							onChange: function (value) { setAttributes({ price: value }); }
+						}),
+						el(TextControl, {
+							label: __('Reference', 'gvm-wp'),
+							value: atts.reference,
+							onChange: function (value) { setAttributes({ reference: value }); },
+							help: __('Leave empty to auto-generate from slug or post ID. 3-59 characters.', 'gvm-wp')
+						}),
+						el(TextControl, {
+							label: __('Title', 'gvm-wp'),
+							value: atts.title,
+							onChange: function (value) { setAttributes({ title: value }); }
+						}),
+						el(SelectControl, {
+							label: __('Hide strategy', 'gvm-wp'),
+							value: atts.hide_strategy,
+							options: STRATEGIES,
+							onChange: function (value) { setAttributes({ hide_strategy: value }); }
+						}),
+						el(CategoryControl, {
+							value: atts.category,
+							placeholder: POST_CATEGORY,
+							onChange: function (value) { setAttributes({ category: value }); },
+							help: __('Category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp')
+						}),
+						el(ConditionControl, {
+							value: atts.cond,
+							onChange: function (value) { setAttributes({ cond: value }); }
+						})
+					),
+					el(HideDetailControls, props)
+				),
 				el('div', { className: 'gvm-block-placeholder' },
-					el('p', { className: 'gvm-block-notice' }, __('Content below is wrapped in a GetViaMsg paywall.', 'gvm-wp')),
+					el('p', { className: 'gvm-block-notice' }, __('Content below is wrapped in an inline GetViaMsg paywall.', 'gvm-wp')),
 					el(InnerBlocks)
 				)
 			);
@@ -172,8 +224,9 @@
 		attributes: {
 			file: { type: 'string', default: '' },
 			price: { type: 'string', default: '' },
+			reference: { type: 'string', default: '' },
 			cond: { type: 'string', default: '' },
-			category: { type: 'string', default: '' }
+			category: { type: 'string', default: DOWNLOAD_CATEGORY }
 		},
 		edit: function (props) {
 			var blockProps = useBlockProps();
@@ -202,16 +255,20 @@
 							onUploaded: function (filename) { setAttributes({ file: filename }); }
 						}),
 						el(TextControl, {
-							label: __('Condition', 'gvm-wp'),
-							value: atts.cond,
-							onChange: function (value) { setAttributes({ cond: value }); },
-							help: __('Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp')
+							label: __('Reference', 'gvm-wp'),
+							value: atts.reference,
+							onChange: function (value) { setAttributes({ reference: value }); },
+							help: __('Optional. Overrides the auto-generated reference (post reference + file name). 3-59 characters; required if the file name is long.', 'gvm-wp')
 						}),
-						el(TextControl, {
-							label: __('Category', 'gvm-wp'),
+						el(CategoryControl, {
 							value: atts.category,
+							placeholder: DOWNLOAD_CATEGORY,
 							onChange: function (value) { setAttributes({ category: value }); },
-							help: __('Optional category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp')
+							help: __('Category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp')
+						}),
+						el(ConditionControl, {
+							value: atts.cond,
+							onChange: function (value) { setAttributes({ cond: value }); }
 						})
 					)
 				),
@@ -295,7 +352,6 @@
 		var reference = useMetaValue(META.reference);
 		var cond = useMetaValue(META.cond);
 		var redirect = useMetaValue(META.redirect);
-		var download = useMetaValue(META.download);
 		var category = useMetaValue(META.category);
 
 		return el(PluginDocumentSettingPanel, {
@@ -328,56 +384,49 @@
 					value: price ? String(price) : '',
 					onChange: function (value) { setMeta(META.price, value); }
 				}),
-				el(TextControl, {
-					label: __('Download file', 'gvm-wp'),
-					value: download || '',
-					onChange: function (value) { setMeta(META.download, value); },
-					help: __('Protected file (in uploads/gvm/) to sell via download. Empty = download strategy disabled.', 'gvm-wp')
-				}),
-				el(DownloadUpload, {
-					onUploaded: function (filename) { setMeta(META.download, filename); }
-				}),
 				el(SelectControl, {
 					label: __('Hide strategy', 'gvm-wp'),
-					value: hideStrategy || 'hide',
+					value: hideStrategy || HIDE_STRATEGY,
 					options: STRATEGIES,
 					onChange: function (value) { setMeta(META.hide_strategy, value); }
-				}),
-				el(TextControl, {
-					label: __('Hide sections', 'gvm-wp'),
-					type: 'number',
-					value: hideSections ? String(hideSections) : '',
-					onChange: function (value) { setMeta(META.hide_sections, value === '' ? null : parseInt(value, 10)); }
-				}),
-				el(TextControl, {
-					label: __('Hide percent (1-100)', 'gvm-wp'),
-					type: 'number',
-					value: hidePercent ? String(hidePercent) : '',
-					onChange: function (value) { setMeta(META.hide_percent, value === '' ? null : parseInt(value, 10)); }
-				}),
-				el(TextControl, {
-					label: __('Hide words', 'gvm-wp'),
-					type: 'number',
-					value: hideWords ? String(hideWords) : '',
-					onChange: function (value) { setMeta(META.hide_words, value === '' ? null : parseInt(value, 10)); }
 				}),
 				el(TextControl, {
 					label: __('Reference', 'gvm-wp'),
 					value: reference || '',
 					onChange: function (value) { setMeta(META.reference, value); },
-					help: __('Leave empty to auto-generate from slug or post ID.', 'gvm-wp')
+					help: __('Leave empty to auto-generate from slug or post ID. 3-59 characters.', 'gvm-wp')
 				}),
-				el(TextControl, {
-					label: __('Condition', 'gvm-wp'),
-					value: cond || '',
-					onChange: function (value) { setMeta(META.cond, value); },
-					help: __('Optional gvm condition (data-gvm-cond), applied at page level.', 'gvm-wp')
-				}),
-				el(TextControl, {
-					label: __('Category', 'gvm-wp'),
-					value: category || '',
+				el(CategoryControl, {
+					value: category || POST_CATEGORY,
+					placeholder: POST_CATEGORY,
 					onChange: function (value) { setMeta(META.category, value); },
-					help: __('Optional category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp')
+					help: __('Category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp')
+				}),
+				el(ConditionControl, {
+					value: cond || '',
+					onChange: function (value) { setMeta(META.cond, value); }
+				})
+			),
+			el(PanelBody, { title: __('Advanced — how much to hide', 'gvm-wp'), initialOpen: false },
+				el(TextControl, {
+					label: __('Hide after sections', 'gvm-wp'),
+					type: 'number',
+					value: hideSections ? String(hideSections) : '',
+					onChange: function (value) { setMeta(META.hide_sections, value === '' ? null : parseInt(value, 10)); },
+					help: __('Keep the first N content blocks visible.', 'gvm-wp')
+				}),
+				el(TextControl, {
+					label: __('Hide after percent (1-100)', 'gvm-wp'),
+					type: 'number',
+					value: hidePercent ? String(hidePercent) : '',
+					onChange: function (value) { setMeta(META.hide_percent, value === '' ? null : parseInt(value, 10)); }
+				}),
+				el(TextControl, {
+					label: __('Hide after words', 'gvm-wp'),
+					type: 'number',
+					value: hideWords ? String(hideWords) : '',
+					onChange: function (value) { setMeta(META.hide_words, value === '' ? null : parseInt(value, 10)); },
+					help: __('Only one is applied, in this order: sections, percent, words.', 'gvm-wp')
 				})
 			)
 		);

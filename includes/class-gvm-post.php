@@ -23,8 +23,8 @@ class Gvm_Post {
 	const REFERENCE     = '_gvm_reference';
 	const COND          = '_gvm_cond';
 	const REDIRECT      = '_gvm_redirect';
-	const DOWNLOAD      = '_gvm_download';
 	const CATEGORY      = '_gvm_category';
+	const FILE_REFS     = '_gvm_file_refs';
 
 	/**
 	 * Register hooks.
@@ -41,52 +41,48 @@ class Gvm_Post {
 	 * @return array
 	 */
 	public static function meta_schema() {
-		return array(
-			self::ENABLED       => array(
-				'type'    => 'boolean',
-				'default' => false,
-			),
-			self::PRICE         => array(
-				'type'    => 'string',
-				'default' => '',
-			),
-			self::HIDE_STRATEGY => array(
-				'type'    => 'string',
-				'default' => 'hide',
-			),
-			self::HIDE_PERCENT  => array(
-				'type'    => 'integer',
-				'default' => 0,
-			),
-			self::HIDE_SECTIONS => array(
-				'type'    => 'integer',
-				'default' => 6,
-			),
-			self::HIDE_WORDS    => array(
-				'type'    => 'integer',
-				'default' => 0,
-			),
-			self::REFERENCE     => array(
-				'type'    => 'string',
-				'default' => '',
-			),
-			self::COND          => array(
-				'type'    => 'string',
-				'default' => '',
-			),
-			self::REDIRECT      => array(
-				'type'    => 'boolean',
-				'default' => false,
-			),
-			self::DOWNLOAD      => array(
-				'type'    => 'string',
-				'default' => '',
-			),
-			self::CATEGORY      => array(
-				'type'    => 'string',
-				'default' => '',
-			),
-		);
+			return array(
+				self::ENABLED       => array(
+					'type'    => 'boolean',
+					'default' => false,
+				),
+				self::PRICE         => array(
+					'type'    => 'string',
+					'default' => '',
+				),
+				self::HIDE_STRATEGY => array(
+					'type'    => 'string',
+					'default' => Gvm_Settings::default_hide_strategy(),
+				),
+				self::HIDE_PERCENT  => array(
+					'type'    => 'integer',
+					'default' => 0,
+				),
+				self::HIDE_SECTIONS => array(
+					'type'    => 'integer',
+					'default' => 6,
+				),
+				self::HIDE_WORDS    => array(
+					'type'    => 'integer',
+					'default' => 0,
+				),
+				self::REFERENCE     => array(
+					'type'    => 'string',
+					'default' => '',
+				),
+				self::COND          => array(
+					'type'    => 'string',
+					'default' => '',
+				),
+				self::REDIRECT      => array(
+					'type'    => 'boolean',
+					'default' => false,
+				),
+				self::CATEGORY      => array(
+					'type'    => 'string',
+					'default' => Gvm_Categories::default_post_category(),
+				),
+			);
 	}
 
 	/**
@@ -136,7 +132,7 @@ class Gvm_Post {
 			case self::HIDE_STRATEGY:
 				$strategy = (string) $value;
 
-				return in_array( $strategy, array( 'none', 'blur', 'hide', 'mangle-blur' ), true ) ? $strategy : 'hide';
+				return in_array( $strategy, Gvm_Settings::hide_strategies(), true ) ? $strategy : Gvm_Settings::default_hide_strategy();
 			case self::HIDE_PERCENT:
 				return max( 0, min( 100, (int) $value ) );
 			case self::HIDE_SECTIONS:
@@ -149,8 +145,6 @@ class Gvm_Post {
 				return self::sanitize_cond( $value );
 			case self::REDIRECT:
 				return (bool) $value;
-			case self::DOWNLOAD:
-				return sanitize_file_name( (string) $value );
 			case self::CATEGORY:
 				return self::sanitize_category( $value );
 		}
@@ -172,7 +166,10 @@ class Gvm_Post {
 	}
 
 	/**
-	 * Sanitize a reference (slug-like, 3-60 chars).
+	 * Sanitize a reference (slug-like, 3-59 chars).
+	 *
+	 * gvm.js requires `data-gvm-reference` to be at least 3 and strictly fewer
+	 * than 60 characters, so 59 is the maximum here.
 	 *
 	 * @param mixed $value Raw value.
 	 * @return string
@@ -184,7 +181,7 @@ class Gvm_Post {
 			return '';
 		}
 
-		return substr( $reference, 0, 60 );
+		return substr( $reference, 0, 59 );
 	}
 
 	/**
@@ -233,7 +230,6 @@ class Gvm_Post {
 			'reference'     => (string) get_post_meta( $post_id, self::REFERENCE, true ),
 			'cond'          => (string) get_post_meta( $post_id, self::COND, true ),
 			'redirect'      => (bool) get_post_meta( $post_id, self::REDIRECT, true ),
-			'download'      => (string) get_post_meta( $post_id, self::DOWNLOAD, true ),
 			'category'      => (string) get_post_meta( $post_id, self::CATEGORY, true ),
 		);
 
@@ -242,14 +238,30 @@ class Gvm_Post {
 			$config['price'] = Gvm_Settings::default_price();
 		}
 
-		if ( ! in_array( $config['hide_strategy'], array( 'none', 'blur', 'hide', 'mangle-blur' ), true ) ) {
-			$config['hide_strategy'] = 'hide';
+		if ( ! in_array( $config['hide_strategy'], Gvm_Settings::hide_strategies(), true ) ) {
+			$config['hide_strategy'] = Gvm_Settings::default_hide_strategy();
 		}
 
 		if ( '' === $config['reference'] ) {
 			$config['reference'] = self::reference( $post_id );
 		}
 
+		if ( '' === $config['category'] ) {
+			$config['category'] = Gvm_Categories::default_post_category();
+		}
+
 		return $config;
+	}
+
+	/**
+	 * Stored map of download file => explicit gvm reference.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array<string,string>
+	 */
+	public static function file_references( $post_id ) {
+		$refs = get_post_meta( $post_id, self::FILE_REFS, true );
+
+		return is_array( $refs ) ? $refs : array();
 	}
 }

@@ -32,8 +32,10 @@ class Gvm_Settings {
 	const OPTION_POST_TYPES      = 'gvm_post_types';
 	const OPTION_TEMPLATE_PAYMENT = 'gvm_template_payment';
 	const OPTION_TEMPLATE_PAYWALL = 'gvm_template_paywall';
+	const OPTION_TEMPLATE_INLINE  = 'gvm_template_inline';
 	const OPTION_TEMPLATE_DOWNLOAD = 'gvm_template_download';
 	const OPTION_ANALYTICS        = 'gvm_analytics';
+	const OPTION_DEFAULT_HIDE_STRATEGY = 'gvm_default_hide_strategy';
 
 	/**
 	 * Named environments understood by gvm.js (data-gvm-env).
@@ -57,8 +59,10 @@ class Gvm_Settings {
 		self::OPTION_POST_TYPES       => array( 'post' ),
 		self::OPTION_TEMPLATE_PAYMENT => '',
 		self::OPTION_TEMPLATE_PAYWALL => '',
+		self::OPTION_TEMPLATE_INLINE  => '',
 		self::OPTION_TEMPLATE_DOWNLOAD => '',
 		self::OPTION_ANALYTICS        => array(),
+		self::OPTION_DEFAULT_HIDE_STRATEGY => 'mangle-blur',
 	);
 
 	/**
@@ -119,6 +123,45 @@ class Gvm_Settings {
 	}
 
 	/**
+	 * Valid currencies. `PLN` is the only one supported by gvm.js today; the
+	 * allow-list keeps the select ready for future currencies.
+	 *
+	 * @return array<string,string>
+	 */
+	public static function currencies() {
+		$currencies = array(
+			'PLN' => __( 'PLN — Polish złoty', 'gvm-wp' ),
+		);
+
+		/**
+		 * Filter the selectable currencies (code => label).
+		 *
+		 * @param array<string,string> $currencies Currency codes and labels.
+		 */
+		return (array) apply_filters( 'gvm_currencies', $currencies );
+	}
+
+	/**
+	 * Valid hide strategies.
+	 *
+	 * @return string[]
+	 */
+	public static function hide_strategies() {
+		return array( 'none', 'blur', 'hide', 'mangle-blur' );
+	}
+
+	/**
+	 * Global default hide strategy used by new articles and blocks.
+	 *
+	 * @return string
+	 */
+	public static function default_hide_strategy() {
+		$strategy = (string) self::get( self::OPTION_DEFAULT_HIDE_STRATEGY );
+
+		return in_array( $strategy, self::hide_strategies(), true ) ? $strategy : 'mangle-blur';
+	}
+
+	/**
 	 * Paywall template slug (single, bundled template).
 	 *
 	 * @return string
@@ -152,6 +195,15 @@ class Gvm_Settings {
 	 */
 	public static function template_paywall() {
 		return (string) self::get( self::OPTION_TEMPLATE_PAYWALL );
+	}
+
+	/**
+	 * Raw inline (block) template HTML from options (empty = bundled file).
+	 *
+	 * @return string
+	 */
+	public static function template_inline() {
+		return (string) self::get( self::OPTION_TEMPLATE_INLINE );
 	}
 
 	/**
@@ -375,6 +427,16 @@ class Gvm_Settings {
 
 		register_setting(
 			self::GROUP,
+			self::OPTION_TEMPLATE_INLINE,
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_template_html' ),
+				'default'           => self::$defaults[ self::OPTION_TEMPLATE_INLINE ],
+			)
+		);
+
+		register_setting(
+			self::GROUP,
 			self::OPTION_TEMPLATE_DOWNLOAD,
 			array(
 				'type'              => 'string',
@@ -393,6 +455,16 @@ class Gvm_Settings {
 			)
 		);
 
+		register_setting(
+			self::GROUP,
+			self::OPTION_DEFAULT_HIDE_STRATEGY,
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_hide_strategy' ),
+				'default'           => self::$defaults[ self::OPTION_DEFAULT_HIDE_STRATEGY ],
+			)
+		);
+
 		add_settings_section(
 			'gvm_main',
 			__( 'GetViaMsg configuration', 'gvm-wp' ),
@@ -408,8 +480,10 @@ class Gvm_Settings {
 		add_settings_field( 'gvm_callback', __( 'JS callback', 'gvm-wp' ), array( __CLASS__, 'field_callback' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_post_types', __( 'Post types', 'gvm-wp' ), array( __CLASS__, 'field_post_types' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_analytics', __( 'Analytics', 'gvm-wp' ), array( __CLASS__, 'field_analytics' ), self::PAGE, 'gvm_main' );
+		add_settings_field( 'gvm_default_hide_strategy', __( 'Default hide strategy', 'gvm-wp' ), array( __CLASS__, 'field_default_hide_strategy' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_template_payment', __( 'Payment template', 'gvm-wp' ), array( __CLASS__, 'field_template_payment' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_template_paywall', __( 'Paywall template', 'gvm-wp' ), array( __CLASS__, 'field_template_paywall' ), self::PAGE, 'gvm_main' );
+		add_settings_field( 'gvm_template_inline', __( 'Inline template', 'gvm-wp' ), array( __CLASS__, 'field_template_inline' ), self::PAGE, 'gvm_main' );
 		add_settings_field( 'gvm_template_download', __( 'Download template', 'gvm-wp' ), array( __CLASS__, 'field_template_download' ), self::PAGE, 'gvm_main' );
 	}
 
@@ -420,7 +494,7 @@ class Gvm_Settings {
 	 */
 	public static function section_main() {
 		echo '<p>' . esc_html__( 'These values are rendered as data-gvm-* attributes on the body tag when a paywall is present.', 'gvm-wp' ) . '</p>';
-		echo '<p>' . esc_html__( 'Per-article controls (price, hide strategy, redirect, download, condition) appear on every enabled post type below: a "GetViaMsg Paywall" meta box in the classic editor, and a sidebar panel in the block editor.', 'gvm-wp' ) . '</p>';
+		echo '<p>' . esc_html__( 'Per-article controls (price, hide strategy, redirect, category, condition) appear on every enabled post type below: a "GetViaMsg Paywall" meta box in the classic editor, and a sidebar panel in the block editor. Files are sold through the "Paid download" block or the [gvm-download] shortcode.', 'gvm-wp' ) . '</p>';
 	}
 
 	/**
@@ -460,15 +534,28 @@ class Gvm_Settings {
 	}
 
 	/**
-	 * Sanitize the currency (currently PLN only).
+	 * Sanitize the currency (must be in the allow-list).
 	 *
 	 * @param mixed $value Raw input.
 	 * @return string
 	 */
 	public static function sanitize_currency( $value ) {
 		$currency = strtoupper( sanitize_text_field( wp_unslash( $value ) ) );
+		$allowed  = array_keys( self::currencies() );
 
-		return 'PLN' === $currency ? 'PLN' : 'PLN';
+		return in_array( $currency, $allowed, true ) ? $currency : 'PLN';
+	}
+
+	/**
+	 * Sanitize the default hide strategy.
+	 *
+	 * @param mixed $value Raw input.
+	 * @return string
+	 */
+	public static function sanitize_hide_strategy( $value ) {
+		$strategy = sanitize_text_field( wp_unslash( $value ) );
+
+		return in_array( $strategy, self::hide_strategies(), true ) ? $strategy : 'mangle-blur';
 	}
 
 	/**
@@ -590,12 +677,48 @@ class Gvm_Settings {
 	 * @return void
 	 */
 	public static function field_currency() {
-		printf(
-			'<input type="text" name="%1$s" value="%2$s" class="small-text" />',
-			esc_attr( self::OPTION_CURRENCY ),
-			esc_attr( self::currency() )
+		$current = self::currency();
+
+		echo '<select name="' . esc_attr( self::OPTION_CURRENCY ) . '">';
+		foreach ( self::currencies() as $code => $label ) {
+			printf(
+				'<option value="%1$s" %2$s>%3$s</option>',
+				esc_attr( $code ),
+				selected( $current, $code, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</select>';
+
+		echo '<p class="description">' . esc_html__( 'Maps to data-gvm-currency. Only PLN is supported by gvm.js today; the list is ready for future currencies.', 'gvm-wp' ) . '</p>';
+	}
+
+	/**
+	 * Default hide strategy field.
+	 *
+	 * @return void
+	 */
+	public static function field_default_hide_strategy() {
+		$current = self::default_hide_strategy();
+		$labels  = array(
+			'none'        => __( 'None', 'gvm-wp' ),
+			'hide'        => __( 'Hide', 'gvm-wp' ),
+			'blur'        => __( 'Blur', 'gvm-wp' ),
+			'mangle-blur' => __( 'Mangle blur', 'gvm-wp' ),
 		);
-		echo '<p class="description">' . esc_html__( 'Currently only PLN is supported by gvm.js.', 'gvm-wp' ) . '</p>';
+
+		echo '<select name="' . esc_attr( self::OPTION_DEFAULT_HIDE_STRATEGY ) . '">';
+		foreach ( self::hide_strategies() as $strategy ) {
+			printf(
+				'<option value="%1$s" %2$s>%3$s</option>',
+				esc_attr( $strategy ),
+				selected( $current, $strategy, false ),
+				esc_html( $labels[ $strategy ] )
+			);
+		}
+		echo '</select>';
+
+		echo '<p class="description">' . esc_html__( 'Used for new articles and blocks until overridden per article.', 'gvm-wp' ) . '</p>';
 	}
 
 	/**
@@ -686,6 +809,7 @@ class Gvm_Settings {
 			esc_textarea( $current )
 		);
 		echo '<p class="description">' . esc_html__( 'Payment modal <template> inner HTML (QR + send SMS + timer). Uses data-gvm-bind-* elements. Leave empty to use the bundled template.', 'gvm-wp' ) . '</p>';
+		self::template_gallery_hint();
 	}
 
 	/**
@@ -701,7 +825,25 @@ class Gvm_Settings {
 			esc_attr( self::OPTION_TEMPLATE_PAYWALL ),
 			esc_textarea( $current )
 		);
-		echo '<p class="description">' . esc_html__( 'Paywall (article blocker) <template> inner HTML. Uses data-gvm-bind-* elements. Leave empty to use the bundled template.', 'gvm-wp' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Paywall (article blocker) <template> inner HTML, used for page/post paywalls. Uses data-gvm-bind-* elements. Leave empty to use the bundled template.', 'gvm-wp' ) . '</p>';
+		self::template_gallery_hint();
+	}
+
+	/**
+	 * Inline template field (block-level paywall).
+	 *
+	 * @return void
+	 */
+	public static function field_template_inline() {
+		$current = Gvm_Render::template_html( 'inline' );
+
+		printf(
+			'<textarea name="%1$s" rows="12" class="large-text code">%2$s</textarea>',
+			esc_attr( self::OPTION_TEMPLATE_INLINE ),
+			esc_textarea( $current )
+		);
+		echo '<p class="description">' . esc_html__( 'Inline paywall used by the "Paid content" block. Keep it compact — it renders inside the content flow. Leave empty to use the bundled template.', 'gvm-wp' ) . '</p>';
+		self::template_gallery_hint();
 	}
 
 	/**
@@ -718,6 +860,21 @@ class Gvm_Settings {
 			esc_textarea( $current )
 		);
 		echo '<p class="description">' . esc_html__( 'Download trigger <template> inner HTML (button to buy the gated file). Uses data-gvm-bind-* elements. Leave empty to use the bundled template.', 'gvm-wp' ) . '</p>';
+		self::template_gallery_hint();
+	}
+
+	/**
+	 * Print the template gallery hint with a link to the templates site.
+	 *
+	 * @return void
+	 */
+	private static function template_gallery_hint() {
+		printf(
+			'<p class="description">%1$s <a href="%2$s" target="_blank" rel="noopener noreferrer">%3$s</a></p>',
+			esc_html__( 'Looking for inspiration?', 'gvm-wp' ),
+			esc_url( 'https://templates.getviamsg.wdft.ovh/' ),
+			esc_html__( 'Browse ready-made GetViaMsg templates →', 'gvm-wp' )
+		);
 	}
 
 	/**

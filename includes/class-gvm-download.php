@@ -28,6 +28,7 @@ class Gvm_Download {
 	public static function init() {
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_serve' ), 0 );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( __CLASS__, 'ajax_upload' ) );
+		add_action( 'save_post', array( __CLASS__, 'sync_file_references' ), 10, 2 );
 	}
 
 	/**
@@ -98,20 +99,157 @@ class Gvm_Download {
 	 * Deterministic per-file reference: <base>-<filename-slug>.
 	 *
 	 * Both the renderer and the endpoint use this, so a payment for one file
-	 * cannot be replayed against another file.
+	 * cannot be replayed against another file. The result is capped below 60
+	 * chars because gvm.js rejects `data-gvm-reference` of 60+ chars.
 	 *
-	 * @param string $base_reference Post reference.
+	 * @param string $base_reference Base reference (post reference or block override).
 	 * @param string $filename       Filename.
 	 * @return string
 	 */
 	public static function file_reference( $base_reference, $filename ) {
+		$base = Gvm_Post::sanitize_reference( $base_reference );
 		$slug = sanitize_title_with_dashes( pathinfo( $filename, PATHINFO_FILENAME ) );
 
 		if ( '' === $slug ) {
 			$slug = 'file';
 		}
 
-		return Gvm_Post::sanitize_reference( $base_reference . '-' . $slug );
+		$reference = '' === $base ? $slug : $base . '-' . $slug;
+		$reference = Gvm_Post::sanitize_reference( $reference );
+
+		if ( '' === $reference ) {
+			$reference = Gvm_Post::sanitize_reference( 'file-' . $slug );
+		}
+
+		return $reference;
+	}
+
+	/**
+	 * The reference used for a gated file.
+	 *
+	 * An explicit reference declared on the `gvm/download` block (or the
+	 * `[gvm-download]` shortcode) wins; otherwise the file reference is derived
+	 * from the post reference + filename. Explicit references are recorded in
+	 * `_gvm_file_refs` on save so the download endpoint can verify the payment.
+	 *
+	 * @param int    $post_id  Post ID.
+	 * @param string $filename Filename.
+	 * @return string
+	 */
+	public static function reference_for_file( $post_id, $filename ) {
+		$filename = sanitize_file_name( wp_basename( (string) $filename ) );
+		$refs     = Gvm_Post::file_references( $post_id );
+
+		if ( isset( $refs[ $filename ] ) ) {
+			$explicit = Gvm_Post::sanitize_reference( $refs[ $filename ] );
+			if ( '' !== $explicit ) {
+				return $explicit;
+			}
+		}
+
+		$config = Gvm_Post::get_config( $post_id );
+
+		return self::file_reference( $config['reference'], $filename );
+	}
+
+	/**
+	 * Record explicit per-file references declared in the post content.
+	 *
+	 * Runs on save_post for both block and shortcode authoring so the download
+	 * endpoint can bind a payment to the exact file. Only runs for enabled post
+	 * types and when the author is allowed to edit the post.
+	 *
+	 * @param int     $post_id Post ID.
+	 * @param WP_Post $post    Post object.
+	 * @return void
+	 */
+	public static function sync_file_references( $post_id, $post ) {
+		if ( ! $post || ! in_array( $post->post_type, Gvm_Settings::post_types(), true ) ) {
+			return;
+		}
+
+		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
+		$content = (string) $post->post_content;
+		$refs    = array();
+
+		self::collect_block_references( parse_blocks( $content ), $refs );
+		self::collect_shortcode_references( $content, $refs );
+
+		$stored = Gvm_Post::file_references( $post_id );
+
+		if ( $refs === $stored ) {
+			return;
+		}
+
+		if ( empty( $refs ) ) {
+			delete_post_meta( $post_id, Gvm_Post::FILE_REFS );
+			return;
+		}
+
+		update_post_meta( $post_id, Gvm_Post::FILE_REFS, $refs );
+	}
+
+	/**
+	 * Collect explicit references from `gvm/download` blocks (recursively).
+	 *
+	 * @param array                $blocks Parsed blocks.
+	 * @param array<string,string> $refs   Collected file => reference map (by reference).
+	 * @return void
+	 */
+	private static function collect_block_references( $blocks, &$refs ) {
+		foreach ( $blocks as $block ) {
+			if ( ! empty( $block['blockName'] ) && 'gvm/download' === $block['blockName'] ) {
+				$attrs = isset( $block['attrs'] ) && is_array( $block['attrs'] ) ? $block['attrs'] : array();
+				$file  = isset( $attrs['file'] ) ? sanitize_file_name( wp_basename( (string) $attrs['file'] ) ) : '';
+				$ref   = isset( $attrs['reference'] ) ? Gvm_Post::sanitize_reference( $attrs['reference'] ) : '';
+
+				if ( '' !== $file && '' !== $ref ) {
+					$refs[ $file ] = $ref;
+				}
+			}
+
+			if ( ! empty( $block['innerBlocks'] ) ) {
+				self::collect_block_references( $block['innerBlocks'], $refs );
+			}
+		}
+	}
+
+	/**
+	 * Collect explicit references from `[gvm-download]` shortcodes.
+	 *
+	 * @param string               $content Post content.
+	 * @param array<string,string> $refs    Collected file => reference map.
+	 * @return void
+	 */
+	private static function collect_shortcode_references( $content, &$refs ) {
+		if ( ! has_shortcode( $content, 'gvm-download' ) ) {
+			return;
+		}
+
+		if ( ! preg_match_all( '/\[gvm-download\b([^\]]*)\]/i', $content, $matches ) ) {
+			return;
+		}
+
+		foreach ( $matches[1] as $atts_string ) {
+			$atts = shortcode_parse_atts( $atts_string );
+			if ( ! is_array( $atts ) ) {
+				continue;
+			}
+
+			$file = isset( $atts['file'] ) ? sanitize_file_name( wp_basename( (string) $atts['file'] ) ) : '';
+			$ref  = isset( $atts['reference'] ) ? Gvm_Post::sanitize_reference( $atts['reference'] ) : '';
+
+			if ( '' !== $file && '' !== $ref ) {
+				$refs[ $file ] = $ref;
+			}
+		}
 	}
 
 	/**
@@ -239,13 +377,9 @@ class Gvm_Download {
 			self::deny();
 		}
 
-		// The file comes from the URL (block/shortcode), or falls back to the
-		// single "Download file" meta.
-		$filename = isset( $_GET['file'] ) ? sanitize_file_name( wp_unslash( $_GET['file'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-
-		if ( '' === $filename ) {
-			$filename = sanitize_file_name( (string) get_post_meta( $post_id, Gvm_Post::DOWNLOAD, true ) );
-		}
+		// The file comes from the URL (block/shortcode). Post-level download was
+		// removed in 0.1.1 — files are always sold through a block or shortcode.
+		$filename = isset( $_GET['file'] ) ? sanitize_file_name( wp_basename( wp_unslash( $_GET['file'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		if ( '' === $filename ) {
 			self::deny();
@@ -255,9 +389,8 @@ class Gvm_Download {
 			self::deny();
 		}
 
-		$config   = Gvm_Post::get_config( $post_id );
 		$params   = Gvm_Signature::from_request();
-		$expected = self::file_reference( $config['reference'], $filename );
+		$expected = self::reference_for_file( $post_id, $filename );
 
 		if ( ! hash_equals( $expected, $params['reference'] ) ) {
 			self::deny();

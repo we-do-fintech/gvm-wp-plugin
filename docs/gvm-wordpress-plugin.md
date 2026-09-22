@@ -24,14 +24,23 @@ After activation, go to **Settings → GetViaMsg** and fill in the fields:
 | Tenant | Tenant ID received from GetViaMsg |
 | Secret | HMAC key used to verify payments (entered once, never shown on the site) |
 | Environment / API URL | Environment: `demo`, `local`, `prod`, `qa`, `dev`, or a custom API URL |
-| Currency | Currency (currently `PLN`) |
+| Currency | Currency (a select — currently `PLN`, ready for more) |
 | Default price | Fallback price when an article has no own price |
+| Default hide strategy | Strategy for new articles/blocks: `hide` / `blur` / `mangle-blur` / `none` (default `mangle-blur`) |
 | JS callback | Optional JS function called after payment |
 | Post types | Content types where the paywall controls are available |
 | Analytics | Emits gvm.js analytics events to GTM (`dl`), GA4 (`gtag`) and/or a custom `CustomEvent` (`custom`) |
-| Payment template | Look of the payment window (QR + SMS) — editable HTML |
-| Paywall template | Look of the content blocker — editable HTML |
+| Payment template | Look of the payment window (QR + SMS + consent gate) — editable HTML |
+| Paywall template | Look of the content blocker for a full page/post — editable HTML |
+| Inline template | Look of the content blocker inside a block/shortcode — editable HTML |
 | Download template | Look of the file download button — editable HTML |
+
+Each template field links to the template gallery at
+<https://templates.getviamsg.wdft.ovh/> — *Looking for inspiration?* The plugin
+ships with `payment-with-terms`, `paywall-sticky` and `paywall-inline` as the
+defaults. Categories are loaded from
+`https://overlay.<env>.gvm.wdft.ovh/categories` (with a bundled fallback);
+defaults are `article` for pages/posts and `report_pdf` for files.
 
 ---
 
@@ -55,12 +64,14 @@ Each article (on enabled content types) has a **GetViaMsg Paywall** panel
 | Enable paywall | Turns the paywall on for the article |
 | Price | Access price (0.01 – 10.00) |
 | Redirect after payment | "Full article" mode (redirect after payment) |
-| Download file | File to sell (download mode) |
 | Hide strategy | How to hide content: `hide` / `blur` / `mangle-blur` / `none` |
-| Hide sections / percent / words | How much content to show before the block |
-| Reference | Unique identifier (defaults to the article slug or ID) |
-| Condition | Optional condition for showing the paywall |
-| Category | Optional category sent with the commitment (`data-gvm-category`, max 64 chars) |
+| Reference | Unique identifier (defaults to the article slug or ID, 3-59 chars) |
+| Category | Category sent with the commitment (default `article`) |
+| Condition | Optional condition for showing the paywall (evaluated last) |
+| Advanced | How much to hide: after N sections / percent / words (only one is applied) |
+
+Files are no longer configured here — use the **Paid download** block or the
+`[gvm-download]` shortcode.
 
 ---
 
@@ -70,26 +81,29 @@ Two Gutenberg blocks are available:
 
 | Block | Purpose |
 | --- | --- |
-| **GetViaMsg — Paid content** | Wraps content in a paywall (hide strategy) |
-| **GetViaMsg — Paid download** | Sells a single file download (with an upload button) |
+| **GetViaMsg — Paid content** | Wraps content in an inline paywall (hide strategy) |
+| **GetViaMsg — Paid download** | Sells a single file download (with an upload button and an optional explicit `reference`) |
 
 Place multiple "Paid download" blocks in one article to offer a list of files.
+The download block defaults to the `report_pdf` category.
 
 ---
 
 ## Templates
 
-The plugin uses three templates, which you can freely edit in the settings:
+The plugin uses four templates, which you can freely edit in the settings:
 
 | Template | Role |
 | --- | --- |
-| **Payment** | Payment window (QR code, SMS sending, countdown) |
-| **Paywall** | Content blocker with an "Unlock for X" button |
+| **Payment** | Payment window (QR code, SMS sending, countdown, consent gate) |
+| **Paywall** | Sticky content blocker for a full page/post |
+| **Inline** | In-content blocker for a block/shortcode (`hide` / `blur`) |
 | **Download** | "Download for X" button |
 
 Templates use `data-gvm-bind-*` placeholders (e.g. `data-gvm-bind-price`,
 `data-gvm-bind-currency`, `data-gvm-bind-qr`, `data-gvm-bind-send-sms`),
-which the plugin fills in automatically.
+which the plugin fills in automatically. Looking for inspiration? See the
+gallery at <https://templates.getviamsg.wdft.ovh/>.
 
 ---
 
@@ -117,12 +131,13 @@ Attributes: `price`, `hide-strategy`, `hide-percent`, `hide-sections`, `hide-wor
 ### `[gvm-download]` — file download
 
 ```
-[gvm-download file="report.pdf" price="1.99"]
+[gvm-download file="report.pdf" price="1.99" reference="report-2026"]
 ```
 
-Downloads a single file (`file` = filename in `uploads/gvm/`). Without `file`, it
-uses the article's "Download file" field. Place one shortcode (or one paywall
-block in "Download file" mode) per file to offer a list of downloads in one article.
+Downloads a single file (`file` = filename in `uploads/gvm/`). The `reference`
+attribute is optional; use it when the auto-generated reference (post reference +
+file name) would be too long. Place one shortcode (or one "Paid download" block)
+per file to offer a list of downloads in one article.
 
 ---
 

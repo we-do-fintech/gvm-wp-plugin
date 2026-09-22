@@ -41,14 +41,14 @@ class Gvm_Block {
 				'render_callback' => array( __CLASS__, 'render_block' ),
 				'attributes'      => array(
 					'price'          => array( 'type' => 'string', 'default' => '' ),
-					'hide_strategy'  => array( 'type' => 'string', 'default' => 'hide' ),
+					'hide_strategy'  => array( 'type' => 'string', 'default' => Gvm_Settings::default_hide_strategy() ),
 					'hide_percent'   => array( 'type' => 'integer', 'default' => 0 ),
 					'hide_sections'  => array( 'type' => 'integer', 'default' => 6 ),
 					'hide_words'     => array( 'type' => 'integer', 'default' => 0 ),
 					'reference'      => array( 'type' => 'string', 'default' => '' ),
 					'title'          => array( 'type' => 'string', 'default' => '' ),
 					'cond'           => array( 'type' => 'string', 'default' => '' ),
-					'category'       => array( 'type' => 'string', 'default' => '' ),
+					'category'       => array( 'type' => 'string', 'default' => Gvm_Categories::default_post_category() ),
 				),
 			)
 		);
@@ -60,10 +60,11 @@ class Gvm_Block {
 				'editor_script'   => 'gvm-editor',
 				'render_callback' => array( __CLASS__, 'render_download_block' ),
 				'attributes'      => array(
-					'file'     => array( 'type' => 'string', 'default' => '' ),
-					'price'    => array( 'type' => 'string', 'default' => '' ),
-					'cond'     => array( 'type' => 'string', 'default' => '' ),
-					'category' => array( 'type' => 'string', 'default' => '' ),
+					'file'      => array( 'type' => 'string', 'default' => '' ),
+					'price'     => array( 'type' => 'string', 'default' => '' ),
+					'reference' => array( 'type' => 'string', 'default' => '' ),
+					'cond'      => array( 'type' => 'string', 'default' => '' ),
+					'category'  => array( 'type' => 'string', 'default' => Gvm_Categories::default_download_category() ),
 				),
 			)
 		);
@@ -81,7 +82,8 @@ class Gvm_Block {
 			(string) $content,
 			array(
 				'price'          => isset( $attributes['price'] ) ? $attributes['price'] : '',
-				'hide_strategy'  => isset( $attributes['hide_strategy'] ) ? $attributes['hide_strategy'] : 'hide',
+				'template'       => 'inline',
+				'hide_strategy'  => isset( $attributes['hide_strategy'] ) ? $attributes['hide_strategy'] : Gvm_Settings::default_hide_strategy(),
 				'hide_percent'   => isset( $attributes['hide_percent'] ) ? $attributes['hide_percent'] : 0,
 				'hide_sections'  => isset( $attributes['hide_sections'] ) ? $attributes['hide_sections'] : 6,
 				'hide_words'     => isset( $attributes['hide_words'] ) ? $attributes['hide_words'] : 0,
@@ -109,13 +111,23 @@ class Gvm_Block {
 
 		$config = Gvm_Post::get_config( $post->ID );
 
+		$reference = isset( $attributes['reference'] ) ? Gvm_Post::sanitize_reference( $attributes['reference'] ) : '';
+		if ( '' === $reference ) {
+			$reference = Gvm_Download::file_reference( $config['reference'], $file );
+		}
+
+		$category = isset( $attributes['category'] ) ? Gvm_Post::sanitize_category( $attributes['category'] ) : '';
+		if ( '' === $category ) {
+			$category = Gvm_Categories::default_download_category();
+		}
+
 		return Gvm_Render::paywall(
 			'',
 			array(
 				'price'       => isset( $attributes['price'] ) ? $attributes['price'] : '',
-				'reference'   => Gvm_Download::file_reference( $config['reference'], $file ),
+				'reference'   => $reference,
 				'cond'        => isset( $attributes['cond'] ) ? $attributes['cond'] : '',
-				'category'    => isset( $attributes['category'] ) ? $attributes['category'] : '',
+				'category'    => $category,
 				'download'    => true,
 				'download_to' => Gvm_Download::download_url( $post->ID, $file ),
 				'filename'    => $file,
@@ -154,10 +166,14 @@ class Gvm_Block {
 			'gvm-editor',
 			'gvmEditorConfig',
 			array(
-				'defaults' => array(
-					'price' => Gvm_Settings::default_price(),
+				'defaults'   => array(
+					'price'            => Gvm_Settings::default_price(),
+					'hideStrategy'     => Gvm_Settings::default_hide_strategy(),
+					'category'         => Gvm_Categories::default_post_category(),
+					'downloadCategory' => Gvm_Categories::default_download_category(),
 				),
-				'upload'   => array(
+				'categories' => Gvm_Categories::list(),
+				'upload'     => array(
 					'ajaxurl' => Gvm_Download::ajax_url(),
 					'action'  => Gvm_Download::AJAX_ACTION,
 					'nonce'   => Gvm_Download::upload_nonce(),
