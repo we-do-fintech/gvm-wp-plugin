@@ -80,7 +80,7 @@ class Gvm_Post {
 				),
 				self::CATEGORY      => array(
 					'type'    => 'string',
-					'default' => Gvm_Categories::default_post_category(),
+					'default' => '',
 				),
 			);
 	}
@@ -128,7 +128,7 @@ class Gvm_Post {
 			case self::PRICE:
 				$price = (float) $value;
 
-				return $price <= 0 ? '' : max( 0.01, min( 10, $price ) );
+				return $price <= 0 ? '' : max( Gvm_Settings::MIN_PRICE, min( Gvm_Settings::MAX_PRICE, $price ) );
 			case self::HIDE_STRATEGY:
 				$strategy = (string) $value;
 

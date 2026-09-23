@@ -3,7 +3,7 @@
  * Plugin Name:       GVM (GetViaMsg)
  * Plugin URI:        https://github.com/we-do-fintech/gvm-wp-plugin
  * Description:       Integrates GetViaMsg (gvm.js) paywalls into WordPress sites with per-article pricing, templates and server-side signature verification.
- * Version:           0.1.2
+ * Version:           0.1.3
  * Requires at least: 6.3
  * Requires PHP:      7.4
  * Author:            WDFT
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'GVM_WP_VERSION', '0.1.2' );
+define( 'GVM_WP_VERSION', '0.1.3' );
 define( 'GVM_WP_FILE', __FILE__ );
 define( 'GVM_WP_DIR', plugin_dir_path( __FILE__ ) );
 define( 'GVM_WP_URL', plugin_dir_url( __FILE__ ) );

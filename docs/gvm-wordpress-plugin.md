@@ -62,7 +62,7 @@ Each article (on enabled content types) has a **GetViaMsg Paywall** panel
 | Field | Description |
 | --- | --- |
 | Enable paywall | Turns the paywall on for the article |
-| Price | Access price (0.01 – 10.00) |
+| Price | Access price (0.01 – 50.00) |
 | Redirect after payment | "Full article" mode (redirect after payment) |
 | Hide strategy | How to hide content: `hide` / `blur` / `mangle-blur` / `none` |
 | Reference | Unique identifier (defaults to the article slug or ID, 3-59 chars) |
@@ -142,7 +142,7 @@ per file to offer a list of downloads in one article.
 ---
 
 ## Conditions
-
+> Only works on "client" side, on "payment after redirect" (server side) conditions not work.
 The paywall can be shown only when a condition is met, e.g.:
 
 ```
@@ -159,3 +159,10 @@ Supported operators: `>`, `<`, `==`, `!=`, `includes`, `startsWith`, `endsWith`,
 The **Secret** key is stored only on the server and never reaches the site.
 Payment is verified server-side (HMAC-SHA256 signature), so the "full" content
 and downloadable files are only served after the payment is confirmed.
+
+---
+
+## User guide and repository
+
+You can find current [USER_GUIDE.md](https://github.com/we-do-fintech/gvm-wp-plugin/blob/main/USER_GUIDE.md) at [gvm-wp-plugin repository](https://github.com/we-do-fintech/gvm-wp-plugin/)
+Current releases are available at [Github Releases](https://github.com/we-do-fintech/gvm-wp-plugin/releases)

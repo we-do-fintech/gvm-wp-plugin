@@ -19,10 +19,16 @@ Make sure you have:
 | **Signed contract with WDFT** | required before going live in production |
 | Administrator access to WordPress | your site |
 
-> **Testing first:** use the `demo` environment. Payments are simulated there
-> (no real SMS, no charge), so you can set everything up and click through the
-> whole flow safely. Switch to your production environment only after the
-> contract with WDFT is signed.
+> **Environments:** pick the right one before you start testing.
+>
+> | Environment | Use it for |
+> | --- | --- |
+> | `demo` | **Templates & layout** — payments are fully simulated (no SMS, no charge). Best for designing and iterating on the payment / paywall / inline / download templates. |
+> | `dev` / `qa` | **Integration testing** — real SMS gateway, but dummy money and the full test payment process. |
+> | `prod` | **Live** — real money and the real payment gateway. Requires a signed contract with WDFT. |
+>
+> Set up everything on `demo` first, run the real SMS flow on `dev`/`qa`, and
+> switch to `prod` only after the contract with WDFT is signed.
 
 ---
 
@@ -89,7 +95,7 @@ Click **Save Changes**. Each template field links to the template gallery at
    - **Classic editor:** the *GetViaMsg Paywall* meta box.
 3. Configure:
    - **Enable paywall** — turn it on.
-   - **Price** — access price (0.01–10.00).
+   - **Price** — access price (0.01–50.00).
    - **Hide strategy** — how much is hidden and how (`mangle-blur` by default).
    - **Redirect after payment** (optional) — show a teaser, then send the reader
      to a verified URL that renders the full article server-side. With
@@ -163,7 +169,7 @@ content and files are only served after confirmation.
 | Problem | Check |
 | --- | --- |
 | No paywall appears | Plugin active; the post type is selected in **Post types**; **Enable paywall** is on; Tenant/Environment are set |
-| Payment window does not open | Correct **Tenant** and **Environment**; the article has a **Reference** (3–59 chars) and a valid **Price** (0.01–10.00) |
+| Payment window does not open | Correct **Tenant** and **Environment**; the article has a **Reference** (3–59 chars) and a valid **Price** (0.01–50.00) |
 | Redirect/download does not unlock | **Secret** is correct (server-side signature verification); the file exists in `uploads/gvm/` |
 | Reading time / words missing in redirect mode | The **Paywall template** must contain `<span data-gvm-bind-reading-time></span>` and `<span data-gvm-bind-reading-words></span>`; clear the template field to fall back to the built-in one |
 | Download says "access denied" | The **Reference** on the download block matches the one used for payment; the file name is correct |
@@ -174,6 +180,9 @@ content and files are only served after confirmation.
 ## Templates & support
 
 - Template gallery: **https://templates.getviamsg.wdft.ovh/**
+- Detailed plugin documentation: **https://docs.wdft.ovh/getviamsg-wordpress-plugin**
+- Analytics events reference: **https://docs.wdft.ovh/getviamsg-analytics-events-gvmjs**
+- gvm.js client behaviour & template building: **https://docs.wdft.ovh/gvm-js.html**
 - GetViaMsg: **https://wdft.ovh/**
 - Plugin repository: **https://github.com/we-do-fintech/gvm-wp-plugin**
 

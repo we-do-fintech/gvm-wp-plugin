@@ -641,7 +641,7 @@ class Gvm_Render {
 	}
 
 	/**
-	 * Format a price for the data-gvm-price attribute (0.01-10).
+	 * Format a price for the data-gvm-price attribute (MIN_PRICE-MAX_PRICE).
 	 *
 	 * @param mixed $price Raw price.
 	 * @return string
@@ -652,8 +652,8 @@ class Gvm_Render {
 		if ( $price <= 0 ) {
 			$price = Gvm_Settings::default_price();
 		}
-		if ( $price > 10 ) {
-			$price = 10;
+		if ( $price > Gvm_Settings::MAX_PRICE ) {
+			$price = Gvm_Settings::MAX_PRICE;
 		}
 
 		return number_format( $price, 2, '.', '' );

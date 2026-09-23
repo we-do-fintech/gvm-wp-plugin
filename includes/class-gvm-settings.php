@@ -23,6 +23,15 @@ class Gvm_Settings {
 	const GROUP = 'gvm_settings_group';
 	const PAGE  = 'gvm';
 
+	/**
+	 * Accepted price range (matches the gvm backend amount limits).
+	 *
+	 * gvm.js currently still validates `data-gvm-price` as <= 10.00, so prices
+	 * above 10 require a matching @wdft/gvm-sdk release.
+	 */
+	const MIN_PRICE = 0.01;
+	const MAX_PRICE = 50.00;
+
 	const OPTION_TENANT          = 'gvm_tenant';
 	const OPTION_SECRET          = 'gvm_secret';
 	const OPTION_ENV_URL         = 'gvm_env_url';
@@ -495,6 +504,12 @@ class Gvm_Settings {
 	public static function section_main() {
 		echo '<p>' . esc_html__( 'These values are rendered as data-gvm-* attributes on the body tag when a paywall is present.', 'gvm-wp' ) . '</p>';
 		echo '<p>' . esc_html__( 'Per-article controls (price, hide strategy, redirect, category, condition) appear on every enabled post type below: a "GetViaMsg Paywall" meta box in the classic editor, and a sidebar panel in the block editor. Files are sold through the "Paid download" block or the [gvm-download] shortcode.', 'gvm-wp' ) . '</p>';
+		printf(
+			'<p>%1$s <a href="%2$s" target="_blank" rel="noopener noreferrer">%3$s</a></p>',
+			esc_html__( 'Full documentation:', 'gvm-wp' ),
+			esc_url( 'https://docs.wdft.ovh/getviamsg-wordpress-plugin' ),
+			esc_html__( 'docs.wdft.ovh/getviamsg-wordpress-plugin', 'gvm-wp' )
+		);
 	}
 
 	/**
@@ -559,7 +574,7 @@ class Gvm_Settings {
 	}
 
 	/**
-	 * Sanitize the default price (0.01-10).
+	 * Sanitize the default price (MIN_PRICE-MAX_PRICE).
 	 *
 	 * @param mixed $value Raw input.
 	 * @return string
@@ -567,7 +582,7 @@ class Gvm_Settings {
 	public static function sanitize_price( $value ) {
 		$price = (float) wp_unslash( $value );
 
-		return (string) max( 0.01, min( 10, $price ) );
+		return (string) max( self::MIN_PRICE, min( self::MAX_PRICE, $price ) );
 	}
 
 	/**
@@ -728,11 +743,13 @@ class Gvm_Settings {
 	 */
 	public static function field_default_price() {
 		printf(
-			'<input type="number" step="0.01" min="0.01" max="10" name="%1$s" value="%2$s" class="small-text" />',
+			'<input type="number" step="0.01" min="%3$s" max="%4$s" name="%1$s" value="%2$s" class="small-text" />',
 			esc_attr( self::OPTION_DEFAULT_PRICE ),
-			esc_attr( (string) self::default_price() )
+			esc_attr( (string) self::default_price() ),
+			esc_attr( (string) self::MIN_PRICE ),
+			esc_attr( (string) self::MAX_PRICE )
 		);
-		echo '<p class="description">' . esc_html__( 'Maps to data-gvm-price (0.01-10).', 'gvm-wp' ) . '</p>';
+		echo '<p class="description">' . esc_html( sprintf( /* translators: 1: min price, 2: max price */ __( 'Maps to data-gvm-price (%1$s-%2$s).', 'gvm-wp' ), self::MIN_PRICE, self::MAX_PRICE ) ) . '</p>';
 	}
 
 	/**
@@ -793,6 +810,12 @@ class Gvm_Settings {
 		}
 
 		echo '<p class="description">' . esc_html__( 'Emits gvm.js analytics events (data-gvm-analytics) to the selected trackers. Leave empty to disable.', 'gvm-wp' ) . '</p>';
+		printf(
+			'<p class="description">%1$s <a href="%2$s" target="_blank" rel="noopener noreferrer">%3$s</a></p>',
+			esc_html__( 'Event reference:', 'gvm-wp' ),
+			esc_url( 'https://docs.wdft.ovh/getviamsg-analytics-events-gvmjs' ),
+			esc_html__( 'docs.wdft.ovh/getviamsg-analytics-events-gvmjs', 'gvm-wp' )
+		);
 	}
 
 	/**
@@ -870,10 +893,12 @@ class Gvm_Settings {
 	 */
 	private static function template_gallery_hint() {
 		printf(
-			'<p class="description">%1$s <a href="%2$s" target="_blank" rel="noopener noreferrer">%3$s</a></p>',
+			'<p class="description">%1$s <a href="%2$s" target="_blank" rel="noopener noreferrer">%3$s</a> · <a href="%4$s" target="_blank" rel="noopener noreferrer">%5$s</a></p>',
 			esc_html__( 'Looking for inspiration?', 'gvm-wp' ),
 			esc_url( 'https://templates.getviamsg.wdft.ovh/' ),
-			esc_html__( 'Browse ready-made GetViaMsg templates →', 'gvm-wp' )
+			esc_html__( 'Browse ready-made GetViaMsg templates →', 'gvm-wp' ),
+			esc_url( 'https://docs.wdft.ovh/gvm-js.html' ),
+			esc_html__( 'gvm.js template reference', 'gvm-wp' )
 		);
 	}
 

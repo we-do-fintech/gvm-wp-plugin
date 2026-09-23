@@ -66,6 +66,7 @@ class Gvm_Post_Meta {
 
 		$config     = Gvm_Post::get_config( $post->ID );
 		$categories = Gvm_Categories::all();
+		$raw_category = (string) get_post_meta( $post->ID, Gvm_Post::CATEGORY, true );
 		?>
 		<p>
 			<label>
@@ -84,7 +85,7 @@ class Gvm_Post_Meta {
 
 		<p>
 			<label for="gvm_price"><?php esc_html_e( 'Price', 'gvm-wp' ); ?></label>
-			<input type="number" id="gvm_price" name="gvm_price" step="0.01" min="0.01" max="10" class="widefat" value="<?php echo esc_attr( (string) $config['price'] ); ?>" />
+			<input type="number" id="gvm_price" name="gvm_price" step="0.01" min="0.01" max="<?php echo esc_attr( (string) Gvm_Settings::MAX_PRICE ); ?>" class="widefat" value="<?php echo esc_attr( (string) $config['price'] ); ?>" />
 		</p>
 
 		<p>
@@ -127,7 +128,7 @@ class Gvm_Post_Meta {
 
 		<p>
 			<label for="gvm_category"><?php esc_html_e( 'Category', 'gvm-wp' ); ?></label>
-			<input type="text" id="gvm_category" name="gvm_category" class="widefat" list="gvm-categories-list" maxlength="64" value="<?php echo esc_attr( $config['category'] ); ?>" placeholder="<?php echo esc_attr( Gvm_Categories::default_post_category() ); ?>" />
+			<input type="text" id="gvm_category" name="gvm_category" class="widefat" list="gvm-categories-list" maxlength="64" value="<?php echo esc_attr( $raw_category ); ?>" placeholder="<?php echo esc_attr( Gvm_Categories::default_post_category() ); ?>" />
 			<datalist id="gvm-categories-list">
 				<?php foreach ( $categories as $name => $pretty ) : ?>
 					<option value="<?php echo esc_attr( $name ); ?>"><?php echo esc_html( $pretty ); ?></option>
@@ -175,7 +176,7 @@ class Gvm_Post_Meta {
 
 		if ( isset( $_POST['gvm_price'] ) ) {
 			$price = (float) wp_unslash( $_POST['gvm_price'] );
-			update_post_meta( $post_id, Gvm_Post::PRICE, $price <= 0 ? '' : max( 0.01, min( 10, $price ) ) );
+			update_post_meta( $post_id, Gvm_Post::PRICE, $price <= 0 ? '' : max( Gvm_Settings::MIN_PRICE, min( Gvm_Settings::MAX_PRICE, $price ) ) );
 		}
 
 		if ( isset( $_POST['gvm_hide_strategy'] ) ) {

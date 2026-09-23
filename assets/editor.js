@@ -42,6 +42,7 @@
 	var HIDE_STRATEGY = DEFAULTS.hideStrategy || 'mangle-blur';
 	var POST_CATEGORY = DEFAULTS.category || 'article';
 	var DOWNLOAD_CATEGORY = DEFAULTS.downloadCategory || 'report_pdf';
+	var MAX_PRICE = DEFAULTS.maxPrice || 50;
 
 	var META = {
 		enabled: '_gvm_enabled',
@@ -155,7 +156,7 @@
 			reference: { type: 'string', default: '' },
 			title: { type: 'string', default: '' },
 			cond: { type: 'string', default: '' },
-			category: { type: 'string', default: POST_CATEGORY }
+			category: { type: 'string', default: '' }
 		},
 		edit: function (props) {
 			var blockProps = useBlockProps();
@@ -170,7 +171,7 @@
 							type: 'number',
 							step: '0.01',
 							min: '0.01',
-							max: '10',
+							max: String(MAX_PRICE),
 							value: atts.price,
 							onChange: function (value) { setAttributes({ price: value }); }
 						}),
@@ -226,7 +227,7 @@
 			price: { type: 'string', default: '' },
 			reference: { type: 'string', default: '' },
 			cond: { type: 'string', default: '' },
-			category: { type: 'string', default: DOWNLOAD_CATEGORY }
+			category: { type: 'string', default: '' }
 		},
 		edit: function (props) {
 			var blockProps = useBlockProps();
@@ -241,7 +242,7 @@
 							type: 'number',
 							step: '0.01',
 							min: '0.01',
-							max: '10',
+							max: String(MAX_PRICE),
 							value: atts.price,
 							onChange: function (value) { setAttributes({ price: value }); }
 						}),
@@ -380,7 +381,7 @@
 					type: 'number',
 					step: '0.01',
 					min: '0.01',
-					max: '10',
+					max: String(MAX_PRICE),
 					value: price ? String(price) : '',
 					onChange: function (value) { setMeta(META.price, value); }
 				}),
@@ -397,7 +398,7 @@
 					help: __('Leave empty to auto-generate from slug or post ID. 3-59 characters.', 'gvm-wp')
 				}),
 				el(CategoryControl, {
-					value: category || POST_CATEGORY,
+					value: category || '',
 					placeholder: POST_CATEGORY,
 					onChange: function (value) { setMeta(META.category, value); },
 					help: __('Category sent with the commitment (data-gvm-category, max 64 chars).', 'gvm-wp')

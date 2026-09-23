@@ -12,6 +12,9 @@ server-side signature verification. Plain PHP, no framework.
 
 - [User guide](USER_GUIDE.md) — install & configure (for site administrators).
 - [Plugin overview (PL)](docs/gvm-wordpress-plugin.md) — how the modes work.
+- [Detailed plugin documentation](https://docs.wdft.ovh/getviamsg-wordpress-plugin) — full reference on docs.wdft.ovh.
+- [gvm.js — client behaviour & template building](https://docs.wdft.ovh/gvm-js.html) — how gvm.js renders and binds templates.
+- [Analytics events](https://docs.wdft.ovh/getviamsg-analytics-events-gvmjs) — `dataLayer` / `gtag` / `CustomEvent` reference.
 - [Releasing](RELEASE.md) — versioning, GitHub releases, wp.org deploy.
 - [Contributor notes](AGENTS.md) — repository conventions.
 
@@ -74,7 +77,7 @@ Your premium content goes here.
 
 Supported attributes (hyphen and underscore forms are equivalent):
 
-- `price` — `data-gvm-price` (0.01-10).
+- `price` — `data-gvm-price` (0.01-50).
 - `hide-strategy` / `hide_strategy` — `blur|hide|mangle-blur`.
 - `hide-percent` / `hide_percent` — `data-gvm-hide-percent` (1-100).
 - `hide-sections` / `hide_sections` — `data-gvm-hide-sections`.

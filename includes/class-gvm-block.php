@@ -48,7 +48,7 @@ class Gvm_Block {
 					'reference'      => array( 'type' => 'string', 'default' => '' ),
 					'title'          => array( 'type' => 'string', 'default' => '' ),
 					'cond'           => array( 'type' => 'string', 'default' => '' ),
-					'category'       => array( 'type' => 'string', 'default' => Gvm_Categories::default_post_category() ),
+					'category'       => array( 'type' => 'string', 'default' => '' ),
 				),
 			)
 		);
@@ -64,7 +64,7 @@ class Gvm_Block {
 					'price'     => array( 'type' => 'string', 'default' => '' ),
 					'reference' => array( 'type' => 'string', 'default' => '' ),
 					'cond'      => array( 'type' => 'string', 'default' => '' ),
-					'category'  => array( 'type' => 'string', 'default' => Gvm_Categories::default_download_category() ),
+					'category'  => array( 'type' => 'string', 'default' => '' ),
 				),
 			)
 		);
@@ -168,6 +168,7 @@ class Gvm_Block {
 			array(
 				'defaults'   => array(
 					'price'            => Gvm_Settings::default_price(),
+					'maxPrice'         => Gvm_Settings::MAX_PRICE,
 					'hideStrategy'     => Gvm_Settings::default_hide_strategy(),
 					'category'         => Gvm_Categories::default_post_category(),
 					'downloadCategory' => Gvm_Categories::default_download_category(),
