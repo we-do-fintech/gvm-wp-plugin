@@ -4,6 +4,17 @@ WordPress plugin integrating [GetViaMsg](https://wdft.ovh/) (`gvm.js`) paywalls
 into your site: per-article pricing, configurable hide strategies, and
 server-side signature verification. Plain PHP, no framework.
 
+> **Setting this up for a client?** Follow the step-by-step
+> [User guide](USER_GUIDE.md) (requirements, install, settings, first article,
+> first inline item).
+
+## Documentation
+
+- [User guide](USER_GUIDE.md) — install & configure (for site administrators).
+- [Plugin overview (PL)](docs/gvm-wordpress-plugin.md) — how the modes work.
+- [Releasing](RELEASE.md) — versioning, GitHub releases, wp.org deploy.
+- [Contributor notes](AGENTS.md) — repository conventions.
+
 ## Requirements
 
 - WordPress 6.3+ (uses `wp_enqueue_script_module`; older versions fall back to `type="module"`).
