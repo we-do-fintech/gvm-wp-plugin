@@ -4,7 +4,7 @@ Tags: paywall, monetization, sms, subscription, content
 Requires at least: 6.3
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -70,6 +70,10 @@ Yes. Run `build.sh vendor /path/to/gvm-sdk/dist/gvm.js` to bundle a copy in
 `assets/gvm.js`, which the plugin then prefers over the CDN.
 
 == Changelog ==
+
+= 0.1.4 =
+* Updated all GetViaMsg links to the new domain `https://getviamsg.com` (payment template footer and the template gallery link in Settings → GetViaMsg).
+* User guide (USER_GUIDE.md) now includes annotated screenshots for installation, settings, blocks and the reader payment flow.
 
 = 0.1.3 =
 * Maximum price raised to 50.00 (requires a matching gvm.js / @wdft/gvm-sdk release — the SDK must allow `data-gvm-price` up to 50.0).

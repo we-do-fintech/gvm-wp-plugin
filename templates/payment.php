@@ -467,7 +467,7 @@
         <footer class="gvm-payment-drawer__footer">
             <small>
                 Potwierdzenie SMS · system obsługuje
-                <a href="https://getviamsg.wdft.ovh/">
+                <a href="https://getviamsg.com/">
                     GetViaMsg
                 </a>
             </small>

@@ -36,7 +36,7 @@ After activation, go to **Settings → GetViaMsg** and fill in the fields:
 | Download template | Look of the file download button — editable HTML |
 
 Each template field links to the template gallery at
-<https://templates.getviamsg.wdft.ovh/> — *Looking for inspiration?* The plugin
+<https://templates.getviamsg.com/> — *Looking for inspiration?* The plugin
 ships with `payment-with-terms`, `paywall-sticky` and `paywall-inline` as the
 defaults. Categories are loaded from
 `https://overlay.<env>.gvm.wdft.ovh/categories` (with a bundled fallback);
@@ -103,7 +103,7 @@ The plugin uses four templates, which you can freely edit in the settings:
 Templates use `data-gvm-bind-*` placeholders (e.g. `data-gvm-bind-price`,
 `data-gvm-bind-currency`, `data-gvm-bind-qr`, `data-gvm-bind-send-sms`),
 which the plugin fills in automatically. Looking for inspiration? See the
-gallery at <https://templates.getviamsg.wdft.ovh/>.
+gallery at <https://templates.getviamsg.com/>.
 
 ---
 

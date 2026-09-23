@@ -1,6 +1,6 @@
 # GVM (GetViaMsg) — WordPress Plugin
 
-WordPress plugin integrating [GetViaMsg](https://wdft.ovh/) (`gvm.js`) paywalls
+WordPress plugin integrating [GetViaMsg](https://getviamsg.com/) (`gvm.js`) paywalls
 into your site: per-article pricing, configurable hide strategies, and
 server-side signature verification. Plain PHP, no framework.
 
@@ -174,7 +174,7 @@ The plugin ships with editable default templates (Settings → GetViaMsg):
 - **Download** — `templates/download.php` (gated file trigger).
 
 Each template field links to the template gallery at
-<https://templates.getviamsg.wdft.ovh/> for more designs. `./build.sh` also
+<https://templates.getviamsg.com/> for more designs. `./build.sh` also
 vendors `../gvm-sdk-admin/categories.json` into `assets/categories.json` as the
 offline fallback catalog.
 

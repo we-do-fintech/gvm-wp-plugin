@@ -44,9 +44,24 @@ Make sure you have:
 ## 2. Install in WordPress
 
 1. Log in to WordPress admin.
-2. Go to **Plugins → Add New → Upload Plugin**.
-3. Choose the downloaded `.zip` and click **Install Now**.
-4. Click **Activate Plugin**.
+2. Go to **Plugins → Add Plugin**.
+
+   ![WordPress Plugins menu with the Add Plugin entry](docs/assets/00.webp)
+
+   ![Add Plugins screen — click Upload Plugin](docs/assets/01.webp)
+
+3. Click **Upload Plugin** and choose the downloaded `.zip`.
+
+   ![Selecting gvm-wp-plugin.zip](docs/assets/02.webp)
+
+4. Click **Install Now**.
+
+   ![Installing the plugin with the Install Now button](docs/assets/03.webp)
+
+5. Click **Activate Plugin**. When the plugin is active the row shows
+   **Deactivate** and its description.
+
+   ![The activated GVM (GetViaMsg) plugin on the Plugins screen](docs/assets/05.webp)
 
 Alternative (manual): copy the `gvm-wp-plugin` folder into
 `wp-content/plugins/` and activate it from **Plugins → Installed Plugins**.
@@ -59,6 +74,8 @@ After activation the protected downloads folder
 ## 3. Settings page setup
 
 Go to **Settings → GetViaMsg**.
+
+![Settings menu with the GetViaMsg entry](docs/assets/04.webp)
 
 Fill in the fields from WDFT:
 
@@ -73,6 +90,8 @@ Fill in the fields from WDFT:
 | **Post types** | which content types get the paywall controls (usually **Posts**) |
 | **Analytics** | optional: GTM (`dl`), GA4 (`gtag`), custom event (`custom`) |
 
+![GetViaMsg settings — Tenant, Secret, environment, currency, price, post types and analytics](docs/assets/11.webp)
+
 Optional — templates (leave empty to use the built-in designs):
 
 | Template | Used for |
@@ -82,8 +101,12 @@ Optional — templates (leave empty to use the built-in designs):
 | **Inline template** | paywall inside a block/shortcode |
 | **Download template** | file download paywall |
 
+![Default hide strategy and the Payment / Paywall template editors](docs/assets/12.webp)
+
+![Inline and Download template editors, and the Save Changes button](docs/assets/13.webp)
+
 Click **Save Changes**. Each template field links to the template gallery at
-**https://templates.getviamsg.wdft.ovh/** if you want more designs.
+**https://templates.getviamsg.com/** if you want more designs.
 
 ---
 
@@ -104,6 +127,9 @@ Click **Save Changes**. Each template field links to the template gallery at
    - **Category** — defaults to `article`.
    - **Condition** (optional) — e.g. `ab > 0.1 AND language includes 'pl'`.
    - **Advanced** — how much to hide (sections / percent / words; only one is applied).
+
+   ![GetViaMsg Paywall panel in the block editor sidebar](docs/assets/21.webp)
+
 4. Click **Publish** / **Update**.
 5. Open the post on the site — the paywall should appear.
 
@@ -114,12 +140,17 @@ Click **Save Changes**. Each template field links to the template gallery at
 Inline items are placed inside a post and use the **inline** template. There are
 two kinds.
 
+![Inserting the GetViaMsg Paid content and Paid download blocks from the block inserter](docs/assets/22.webp)
+
 ### A. Paid content (part of an article)
 
 1. In the editor, add the block **GetViaMsg — Paid content**.
 2. Put the paid content inside the block.
 3. In the block sidebar set **Price**, **Hide strategy**, **Reference**,
    **Category** and optional **Condition**.
+
+   ![Paid content block settings](docs/assets/25.webp)
+
 4. Update the post.
 
 ### B. Paid download (a file)
@@ -129,10 +160,15 @@ two kinds.
 3. Set **Price**, and optionally **Reference** (use this if the auto-generated
    reference from the file name would be too long), **Category** (default
    `report_pdf`) and **Condition**.
+
+   ![Paid download block settings with the Upload file button](docs/assets/24.webp)
+
 4. Update the post.
 
 You can add several "Paid download" blocks in one article to offer multiple
 files.
+
+![Two paid download cards rendered on the front end](docs/assets/33.webp)
 
 ### Shortcodes (alternative to blocks)
 
@@ -153,7 +189,13 @@ Content revealed only after a verified payment.
 ## What the reader sees
 
 1. The reader opens the article and sees the teaser / inline paywall.
+
+   ![Blurred paywall with the sticky unlock bar](docs/assets/31.webp)
+
 2. They click the unlock button → the payment window opens (QR code + SMS).
+
+   ![SMS payment window with the QR code, price and countdown](docs/assets/32.webp)
+
 3. After the payment is confirmed:
    - **hide / blur / mangle-blur** — the content unlocks without a page reload,
    - **redirect** — the page reloads with the full article,
@@ -179,11 +221,11 @@ content and files are only served after confirmation.
 
 ## Templates & support
 
-- Template gallery: **https://templates.getviamsg.wdft.ovh/**
+- Template gallery: **https://templates.getviamsg.com/**
 - Detailed plugin documentation: **https://docs.wdft.ovh/getviamsg-wordpress-plugin**
 - Analytics events reference: **https://docs.wdft.ovh/getviamsg-analytics-events-gvmjs**
 - gvm.js client behaviour & template building: **https://docs.wdft.ovh/gvm-js.html**
-- GetViaMsg: **https://wdft.ovh/**
+- GetViaMsg: **https://getviamsg.com/**
 - Plugin repository: **https://github.com/we-do-fintech/gvm-wp-plugin**
 
 For Tenant ID, Secret key, environment and production contracts, contact WDFT

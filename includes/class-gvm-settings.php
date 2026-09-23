@@ -895,7 +895,7 @@ class Gvm_Settings {
 		printf(
 			'<p class="description">%1$s <a href="%2$s" target="_blank" rel="noopener noreferrer">%3$s</a> · <a href="%4$s" target="_blank" rel="noopener noreferrer">%5$s</a></p>',
 			esc_html__( 'Looking for inspiration?', 'gvm-wp' ),
-			esc_url( 'https://templates.getviamsg.wdft.ovh/' ),
+			esc_url( 'https://templates.getviamsg.com/' ),
 			esc_html__( 'Browse ready-made GetViaMsg templates →', 'gvm-wp' ),
 			esc_url( 'https://docs.wdft.ovh/gvm-js.html' ),
 			esc_html__( 'gvm.js template reference', 'gvm-wp' )
