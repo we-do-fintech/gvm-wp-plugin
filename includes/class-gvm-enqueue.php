@@ -97,6 +97,7 @@ class Gvm_Enqueue {
 
 		self::print_body_script();
 		echo Gvm_Render::render_templates(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- template fragments are plugin-controlled markup.
+		echo Gvm_Render::render_styles(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- plugin-controlled inline CSS.
 	}
 
 	/**

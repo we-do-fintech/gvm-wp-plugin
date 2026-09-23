@@ -49,7 +49,7 @@ defaults are `article` for pages/posts and `report_pdf` for files.
 | Mode | How it works | Where it happens |
 | --- | --- | --- |
 | **Content blocker (hide)** | Part of the article is hidden, the rest is visible. After payment the content unlocks without a page reload | in the browser |
-| **Full article (redirect)** | Only a teaser is visible. After payment the page redirects to the full article, rendered after verification | on the server |
+| **Full article (redirect)** | Only a teaser is visible. After payment the page redirects to the full article, rendered after verification. With blur / mangle-blur a shape-preserving placeholder (same paragraphs and word lengths, random characters) is shown under the teaser | on the server |
 | **File download (download)** | A teaser and a download button are visible. After payment the file is served for download after verification | on the server |
 
 ---

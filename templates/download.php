@@ -38,6 +38,9 @@
         background: var(--gvm-bg, #fff);
         color: var(--gvm-fg, #111);
 
+        border: 1px solid var(--gvm-border, #d9d9d9);
+        border-radius: var(--gvm-radius, 10px);
+
         box-shadow: 0 16px 40px var(--gvm-shadow-color, rgba(0, 0, 0, 0.10));
     }
 
@@ -153,6 +156,8 @@
         .gvm-paywall-inline {
             margin: 20px 0;
             padding: 16px;
+
+            border-radius: var(--gvm-radius, 8px);
         }
 
         .gvm-paywall-inline__body {
@@ -199,7 +204,7 @@
             </p>
 
             <p class="gvm-paywall-inline__title">
-                Odblokuj dostęp do materiału do pobrania
+                Odblokuj materiał do pobrania
             </p>
 
             <p class="gvm-paywall-inline__meta">
@@ -222,4 +227,8 @@
             </button>
         </div>
     </div>
+
+    <p class="gvm-paywall-inline__hint">
+        Bez karty · Bez konta · Bez subskrypcji
+    </p>
 </div>

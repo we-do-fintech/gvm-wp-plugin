@@ -51,6 +51,13 @@ class Gvm_Render {
 	private static $condition = '';
 
 	/**
+	 * Whether a redirect placeholder (filler) was rendered this request.
+	 *
+	 * @var bool
+	 */
+	private static $has_filler = false;
+
+	/**
 	 * Register hooks.
 	 *
 	 * @return void
@@ -123,10 +130,19 @@ class Gvm_Render {
 				return $content;
 			}
 
+			// Redirect strategy: the full content is only rendered server-side on
+			// the target URL. For blur/mangle-blur we render a shape-preserving
+			// placeholder (random characters, same word lengths) so the paywall
+			// looks like it covers real content without leaking it.
+			$placeholder = '';
+			if ( in_array( $config['hide_strategy'], array( 'blur', 'mangle-blur' ), true ) ) {
+				$placeholder = self::redirect_filler( $content, $config['hide_strategy'] );
+			}
+
 			// Teaser + a click-to-unlock trigger (redirect strategy).
 			return self::teaser( $content, $config )
 				. self::paywall(
-					'',
+					$placeholder,
 					array(
 						'price'           => $config['price'],
 						'template'        => $config['template'],
@@ -230,10 +246,11 @@ class Gvm_Render {
 		} elseif ( ! empty( $args['redirect'] ) ) {
 			// Redirect strategy: no hide action. The node itself is the click
 			// trigger; gvm.js redirects with the signature params after payment
-			// (server renders full content on the target URL).
+			// (server renders full content on the target URL). Any placeholder
+			// content passed in is kept and the trigger is appended after it.
 			$redirect_to = (string) $args['redirect_to'];
 			$attrs['data-gvm-http-redirect-to'] = '' !== $redirect_to ? $redirect_to : self::current_url();
-			$content = self::static_trigger( $args, $template_slug );
+			$content = $content . self::static_trigger( $args, $template_slug );
 		} elseif ( 'none' !== $strategy ) {
 			$attrs['data-gvm-hide-strategy']      = $strategy;
 			$attrs['data-gvm-hide-template-name'] = $hide_name;
@@ -349,6 +366,191 @@ class Gvm_Render {
 		}
 
 		return implode( "\n", array_slice( $matches[0], 0, (int) $count ) );
+	}
+
+	/**
+	 * Build a shape-preserving placeholder for the redirect strategy.
+	 *
+	 * The real content never leaves the server: only the *shape* is reused
+	 * (block types, word lengths, punctuation, whitespace), while every word is
+	 * replaced with random letters of the same length. This gives blur/
+	 * mangle-blur something realistic to cover without leaking the article.
+	 *
+	 * @param string $content  Full content.
+	 * @param string $strategy Hide strategy (blur|mangle-blur).
+	 * @return string
+	 */
+	public static function redirect_filler( $content, $strategy ) {
+		$strategy = in_array( $strategy, array( 'blur', 'mangle-blur' ), true ) ? $strategy : 'blur';
+
+		$max_words = (int) apply_filters( 'gvm_redirect_filler_max_words', 600 );
+		if ( $max_words < 1 ) {
+			$max_words = 600;
+		}
+
+		$alphabet = (string) apply_filters( 'gvm_redirect_filler_alphabet', 'abcdefghijklmnopqrstuvwxyz' );
+		if ( '' === $alphabet ) {
+			$alphabet = 'abcdefghijklmnopqrstuvwxyz';
+		}
+
+		if ( ! preg_match_all( '#<(p|h[1-6]|ul|ol)\b[^>]*>(.*?)</\1>#is', (string) $content, $matches, PREG_SET_ORDER ) ) {
+			return '';
+		}
+
+		$remaining = $max_words;
+		$blocks    = array();
+
+		foreach ( $matches as $match ) {
+			if ( $remaining <= 0 ) {
+				break;
+			}
+
+			$tag  = strtolower( $match[1] );
+			$text = wp_strip_all_tags( $match[2] );
+			$words = preg_match_all( '/[\p{L}\p{N}]+/u', $text );
+
+			if ( ! $words ) {
+				continue;
+			}
+
+			if ( 'ul' === $tag || 'ol' === $tag ) {
+				$items = self::filler_list_items( $match[2], $strategy, $alphabet );
+				if ( '' !== $items ) {
+					$blocks[] = '<' . $tag . '>' . $items . '</' . $tag . '>';
+				}
+			} else {
+				$gibberish = self::filler_text( $text, $alphabet );
+
+				if ( 'mangle-blur' === $strategy ) {
+					$gibberish = self::shuffle_words( $gibberish );
+				}
+
+				$blocks[] = '<' . $tag . '>' . $gibberish . '</' . $tag . '>';
+			}
+
+			$remaining -= (int) $words;
+		}
+
+		if ( empty( $blocks ) ) {
+			return '';
+		}
+
+		self::$has_filler = true;
+
+		$html = '<div class="gvm-redirect-filler gvm-redirect-filler--' . esc_attr( $strategy ) . '" aria-hidden="true">'
+			. implode( "\n", $blocks )
+			. '</div>';
+
+		/**
+		 * Filter the redirect placeholder markup.
+		 *
+		 * @param string $html     Placeholder HTML.
+		 * @param string $content  Original content (server-side only).
+		 * @param string $strategy Hide strategy.
+		 */
+		return (string) apply_filters( 'gvm_redirect_filler', $html, $content, $strategy );
+	}
+
+	/**
+	 * Build placeholder <li> items for a list container.
+	 *
+	 * @param string $html     List inner HTML.
+	 * @param string $strategy Hide strategy.
+	 * @param string $alphabet Alphabet to draw from.
+	 * @return string
+	 */
+	private static function filler_list_items( $html, $strategy, $alphabet ) {
+		if ( ! preg_match_all( '#<li\b[^>]*>(.*?)</li>#is', (string) $html, $matches ) ) {
+			return '';
+		}
+
+		$items = array();
+
+		foreach ( $matches[1] as $item ) {
+			$gibberish = self::filler_text( wp_strip_all_tags( $item ), $alphabet );
+
+			if ( 'mangle-blur' === $strategy ) {
+				$gibberish = self::shuffle_words( $gibberish );
+			}
+
+			$items[] = '<li>' . $gibberish . '</li>';
+		}
+
+		return implode( '', $items );
+	}
+
+	/**
+	 * Replace every word/number run with random letters of the same length,
+	 * preserving punctuation and whitespace.
+	 *
+	 * @param string $text     Plain text.
+	 * @param string $alphabet Alphabet to draw from.
+	 * @return string
+	 */
+	private static function filler_text( $text, $alphabet ) {
+		return (string) preg_replace_callback(
+			'/[\p{L}\p{N}]+/u',
+			function ( $match ) use ( $alphabet ) {
+				$word = $match[0];
+				$len  = function_exists( 'mb_strlen' ) ? mb_strlen( $word, 'UTF-8' ) : strlen( $word );
+
+				return self::random_letters( min( $len, 24 ), $alphabet );
+			},
+			$text
+		);
+	}
+
+	/**
+	 * Generate a random string from the given alphabet.
+	 *
+	 * @param int    $length   Desired length.
+	 * @param string $alphabet Alphabet.
+	 * @return string
+	 */
+	private static function random_letters( $length, $alphabet ) {
+		$length = (int) $length;
+		$max    = strlen( $alphabet ) - 1;
+		$out    = '';
+
+		for ( $i = 0; $i < $length; $i++ ) {
+			$out .= $alphabet[ wp_rand( 0, $max ) ];
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Shuffle the order of whitespace-separated tokens (mangle-blur imitation).
+	 *
+	 * @param string $text Text.
+	 * @return string
+	 */
+	private static function shuffle_words( $text ) {
+		$words = preg_split( '/\s+/', trim( (string) $text ) );
+
+		if ( ! is_array( $words ) || count( $words ) < 2 ) {
+			return (string) $text;
+		}
+
+		shuffle( $words );
+
+		return implode( ' ', $words );
+	}
+
+	/**
+	 * Styles for the redirect placeholder. Printed once in the footer when used.
+	 *
+	 * @return string
+	 */
+	public static function render_styles() {
+		if ( ! self::$has_filler ) {
+			return '';
+		}
+
+		return '<style id="gvm-redirect-filler-style">'
+			. '.gvm-redirect-filler{filter:blur(6px);pointer-events:none;user-select:none;-webkit-user-select:none;overflow:hidden;}'
+			. '.gvm-redirect-filler--mangle-blur{filter:blur(6px);}'
+			. '</style>';
 	}
 
 	/**

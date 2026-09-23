@@ -1,9 +1,12 @@
 name: Deploy to WordPress.org
 
+# Manual only: publishing to the wp.org SVN repo is a deliberate action.
+# GitHub releases (zip assets) are handled by release.yml on v* tags.
+# Run from the Actions tab (Workflow dispatch) once SVN_USERNAME/SVN_PASSWORD
+# repository secrets are configured.
+
 on:
-  push:
-    tags:
-      - '*'
+  workflow_dispatch:
 
 jobs:
   build:

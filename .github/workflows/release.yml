@@ -1,0 +1,41 @@
+name: Release
+
+# Publishing a GitHub release (zip asset):
+#   git tag v0.1.2 && git push origin v0.1.2
+#
+# The WordPress.org SVN deploy lives in deploy.yml and is manual
+# (workflow_dispatch) so it does not run on every tag.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Vendor gvm.js from npm (best effort, self-host mode)
+        run: |
+          if npm pack @wdft/gvm-sdk@latest 2>/dev/null; then
+            tar -xzf wdft-gvm-sdk-*.tgz
+            bash build.sh vendor package/dist/gvm.js || true
+          else
+            echo "gvm-sdk npm pack failed; the release will load gvm.js from esm.sh."
+          fi
+
+      - name: Build zip
+        run: bash build.sh zip
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true

@@ -79,7 +79,7 @@ class Gvm_Post_Meta {
 				<input type="checkbox" name="gvm_redirect" value="1" <?php checked( $config['redirect'], true ); ?> />
 				<?php esc_html_e( 'Redirect after payment', 'gvm-wp' ); ?>
 			</label>
-			<span class="description"><?php esc_html_e( 'Show a teaser, then redirect to a verified URL that renders the full article server-side.', 'gvm-wp' ); ?></span>
+			<span class="description"><?php esc_html_e( 'Show a teaser, then redirect to a verified URL that renders the full article server-side. With blur / mangle-blur a generated placeholder is shown under the teaser.', 'gvm-wp' ); ?></span>
 		</p>
 
 		<p>

@@ -372,7 +372,7 @@
 						label: __('Redirect after payment', 'gvm-wp'),
 						checked: !!redirect,
 						onChange: function (value) { setMeta(META.redirect, value); },
-						help: __('Show a teaser, then redirect to a verified URL that renders the full article server-side.', 'gvm-wp')
+						help: __('Show a teaser, then redirect to a verified URL that renders the full article server-side. With blur / mangle-blur a generated placeholder is shown under the teaser.', 'gvm-wp')
 					})
 				),
 				el(TextControl, {

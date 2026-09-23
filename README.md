@@ -46,6 +46,13 @@ percent, words) live under **Advanced**; the condition field is last. Files are
 no longer configured here — use the **Paid download** block or the
 `[gvm-download]` shortcode.
 
+With **Redirect after payment** enabled, blur / mangle-blur render a
+shape-preserving placeholder under the teaser (same paragraphs and word
+lengths, random characters) so the paywall looks like it covers real content
+without sending it to the browser. `hide` keeps the current teaser-only view.
+The placeholder is filterable via `gvm_redirect_filler`,
+`gvm_redirect_filler_alphabet` and `gvm_redirect_filler_max_words`.
+
 ### Shortcode
 
 ```
