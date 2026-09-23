@@ -208,7 +208,8 @@
             </p>
 
             <p class="gvm-paywall-inline__meta">
-                Potwierdzenie SMS · bez konta · bez aplikacji
+                <span data-gvm-bind-filename></span>
+                · Potwierdzenie SMS · bez konta · bez aplikacji
             </p>
         </div>
 

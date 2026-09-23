@@ -607,14 +607,24 @@ class Gvm_Render {
 		);
 
 		foreach ( $bindings as $key => $value ) {
-			$html = str_replace(
-				'<span data-gvm-bind-' . $key . '></span>',
-				'<span>' . $value . '</span>',
+			// Match the bind element regardless of extra attributes or default
+			// inner content, e.g. <span data-gvm-bind-reading-time>0</span>.
+			// gvm.js overwrites textContent; the server-side renderer must do
+			// the same, otherwise redirect mode would keep the default text.
+			$pattern = '#<span\b[^>]*data-gvm-bind-' . preg_quote( $key, '#' ) . '(?=[\s=>/])[^>]*>.*?</span>#is';
+
+			$html = preg_replace_callback(
+				$pattern,
+				function () use ( $value ) {
+					return '<span>' . $value . '</span>';
+				},
 				$html
 			);
 		}
 
-		$html = str_replace( ' data-gvm-bind-pay', '', $html );
+		// The whole node is the click trigger, so the pay button binding is not
+		// needed (and would make gvm.js try to render a hide action).
+		$html = preg_replace( '#\s+data-gvm-bind-pay(?:=(?:"[^"]*"|\'[^\']*\'|[^\s>]+))?#', '', $html );
 
 		return $html;
 	}
