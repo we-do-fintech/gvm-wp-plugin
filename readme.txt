@@ -4,7 +4,7 @@ Tags: paywall, monetization, sms, subscription, content
 Requires at least: 6.3
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -70,6 +70,9 @@ Yes. Run `build.sh vendor /path/to/gvm-sdk/dist/gvm.js` to bundle a copy in
 `assets/gvm.js`, which the plugin then prefers over the CDN.
 
 == Changelog ==
+
+= 0.2.1 =
+* Fix "Cannot redeclare gvm_init()" when a second/left-over copy of the plugin is present.
 
 = 0.2.0 =
 * Updated all GetViaMsg links to the new domain `https://getviamsg.com` (payment template footer and the template gallery link in Settings → GetViaMsg).

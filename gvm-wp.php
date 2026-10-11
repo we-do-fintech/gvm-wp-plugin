@@ -3,7 +3,7 @@
  * Plugin Name:       GVM (GetViaMsg)
  * Plugin URI:        https://github.com/we-do-fintech/gvm-wp-plugin
  * Description:       Integrates GetViaMsg (gvm.js) paywalls into WordPress sites with per-article pricing, templates and server-side signature verification.
- * Version:           0.2.0
+ * Version:           0.2.1
  * Requires at least: 6.3
  * Requires PHP:      7.4
  * Author:            WDFT
@@ -19,7 +19,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'GVM_WP_VERSION', '0.2.0' );
+/*
+ * Guard against a second copy of this plugin being loaded in the same request
+ * (for example a left-over "gvm-wp-plugin-2" directory). Without this, the
+ * duplicate file redeclares gvm_init()/gvm_activate() and the classes in
+ * includes/, which fatals the site during activation/updates.
+ */
+if ( defined( 'GVM_WP_VERSION' ) ) {
+	return;
+}
+
+define( 'GVM_WP_VERSION', '0.2.1' );
 define( 'GVM_WP_FILE', __FILE__ );
 define( 'GVM_WP_DIR', plugin_dir_path( __FILE__ ) );
 define( 'GVM_WP_URL', plugin_dir_url( __FILE__ ) );
@@ -41,15 +51,17 @@ require_once GVM_WP_DIR . 'includes/class-gvm-shortcode.php';
  *
  * @return void
  */
-function gvm_init() {
-	Gvm_Settings::init();
-	Gvm_Post::init();
-	Gvm_Render::init();
-	Gvm_Download::init();
-	Gvm_Enqueue::init();
-	Gvm_Post_Meta::init();
-	Gvm_Block::init();
-	Gvm_Shortcode::init();
+if ( ! function_exists( 'gvm_init' ) ) {
+	function gvm_init() {
+		Gvm_Settings::init();
+		Gvm_Post::init();
+		Gvm_Render::init();
+		Gvm_Download::init();
+		Gvm_Enqueue::init();
+		Gvm_Post_Meta::init();
+		Gvm_Block::init();
+		Gvm_Shortcode::init();
+	}
 }
 add_action( 'plugins_loaded', 'gvm_init' );
 
@@ -58,8 +70,10 @@ add_action( 'plugins_loaded', 'gvm_init' );
  *
  * @return void
  */
-function gvm_activate() {
-	Gvm_Settings::install_defaults();
-	Gvm_Download::ensure_protected();
+if ( ! function_exists( 'gvm_activate' ) ) {
+	function gvm_activate() {
+		Gvm_Settings::install_defaults();
+		Gvm_Download::ensure_protected();
+	}
 }
 register_activation_hook( __FILE__, 'gvm_activate' );
