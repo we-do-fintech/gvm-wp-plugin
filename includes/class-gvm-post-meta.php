@@ -85,7 +85,7 @@ class Gvm_Post_Meta {
 
 		<p>
 			<label for="gvm_price"><?php esc_html_e( 'Price', 'gvm-wp' ); ?></label>
-			<input type="number" id="gvm_price" name="gvm_price" step="0.01" min="0.01" max="<?php echo esc_attr( (string) Gvm_Settings::MAX_PRICE ); ?>" class="widefat" value="<?php echo esc_attr( (string) $config['price'] ); ?>" />
+			<input type="text" inputmode="decimal" id="gvm_price" name="gvm_price" class="widefat" value="<?php echo esc_attr( (string) $config['price'] ); ?>" />
 		</p>
 
 		<p>
@@ -175,8 +175,7 @@ class Gvm_Post_Meta {
 		update_post_meta( $post_id, Gvm_Post::REDIRECT, $redirect );
 
 		if ( isset( $_POST['gvm_price'] ) ) {
-			$price = (float) wp_unslash( $_POST['gvm_price'] );
-			update_post_meta( $post_id, Gvm_Post::PRICE, $price <= 0 ? '' : max( Gvm_Settings::MIN_PRICE, min( Gvm_Settings::MAX_PRICE, $price ) ) );
+			update_post_meta( $post_id, Gvm_Post::PRICE, Gvm_Settings::normalize_price( wp_unslash( $_POST['gvm_price'] ) ) );
 		}
 
 		if ( isset( $_POST['gvm_hide_strategy'] ) ) {

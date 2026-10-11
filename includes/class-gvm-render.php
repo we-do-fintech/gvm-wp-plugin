@@ -226,6 +226,11 @@ class Gvm_Render {
 			'data-gvm-template-name' => 'payment',
 		);
 
+		$price_token = self::price_token_for( $reference, $args['price'] );
+		if ( '' !== $price_token ) {
+			$attrs['data-gvm-price-token'] = $price_token;
+		}
+
 		if ( '' !== (string) $args['metadata_title'] ) {
 			$attrs['data-gvm-metadata-title'] = (string) $args['metadata_title'];
 		}
@@ -641,22 +646,42 @@ class Gvm_Render {
 	}
 
 	/**
+	 * Price in integer minor units, derived from the same value as data-gvm-price.
+	 *
+	 * @param mixed $price Raw price.
+	 * @return int
+	 */
+	public static function amount_minor( $price ) {
+		return (int) round( (float) self::format_price( $price ) * 100 );
+	}
+
+	/**
+	 * Signed price token for data-gvm-price-token (empty when no secret is set).
+	 *
+	 * @param string $reference Reference id (same value as data-gvm-reference).
+	 * @param mixed  $price     Raw price.
+	 * @return string
+	 */
+	public static function price_token_for( $reference, $price ) {
+		return Gvm_Signature::price_token(
+			Gvm_Settings::secret(),
+			Gvm_Settings::tenant(),
+			(string) $reference,
+			self::amount_minor( $price ),
+			Gvm_Settings::currency()
+		);
+	}
+
+	/**
 	 * Format a price for the data-gvm-price attribute (MIN_PRICE-MAX_PRICE).
 	 *
 	 * @param mixed $price Raw price.
 	 * @return string
 	 */
 	public static function format_price( $price ) {
-		$price = (float) $price;
+		$normalized = Gvm_Settings::normalize_price( $price );
 
-		if ( $price <= 0 ) {
-			$price = Gvm_Settings::default_price();
-		}
-		if ( $price > Gvm_Settings::MAX_PRICE ) {
-			$price = Gvm_Settings::MAX_PRICE;
-		}
-
-		return number_format( $price, 2, '.', '' );
+		return '' !== $normalized ? $normalized : number_format( Gvm_Settings::default_price(), 2, '.', '' );
 	}
 
 	/**

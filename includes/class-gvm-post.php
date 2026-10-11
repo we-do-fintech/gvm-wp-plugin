@@ -126,9 +126,7 @@ class Gvm_Post {
 			case self::ENABLED:
 				return (bool) $value;
 			case self::PRICE:
-				$price = (float) $value;
-
-				return $price <= 0 ? '' : max( Gvm_Settings::MIN_PRICE, min( Gvm_Settings::MAX_PRICE, $price ) );
+				return Gvm_Settings::normalize_price( $value );
 			case self::HIDE_STRATEGY:
 				$strategy = (string) $value;
 
@@ -233,10 +231,8 @@ class Gvm_Post {
 			'category'      => (string) get_post_meta( $post_id, self::CATEGORY, true ),
 		);
 
-		$price = (float) $config['price'];
-		if ( $price <= 0 ) {
-			$config['price'] = Gvm_Settings::default_price();
-		}
+		$normalized = Gvm_Settings::normalize_price( $config['price'] );
+		$config['price'] = '' !== $normalized ? $normalized : Gvm_Settings::default_price();
 
 		if ( ! in_array( $config['hide_strategy'], Gvm_Settings::hide_strategies(), true ) ) {
 			$config['hide_strategy'] = Gvm_Settings::default_hide_strategy();

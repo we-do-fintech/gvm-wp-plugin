@@ -43,6 +43,8 @@
 	var POST_CATEGORY = DEFAULTS.category || 'article';
 	var DOWNLOAD_CATEGORY = DEFAULTS.downloadCategory || 'report_pdf';
 	var MAX_PRICE = DEFAULTS.maxPrice || 50;
+	// Accept a decimal comma (pl_PL): normalize to dot-decimal.
+	function normPrice(value) { return String(value == null ? '' : value).replace(',', '.'); }
 
 	var META = {
 		enabled: '_gvm_enabled',
@@ -168,12 +170,9 @@
 					el(PanelBody, { title: __('Paywall settings', 'gvm-wp'), initialOpen: true },
 						el(TextControl, {
 							label: __('Price', 'gvm-wp'),
-							type: 'number',
-							step: '0.01',
-							min: '0.01',
-							max: String(MAX_PRICE),
+							inputMode: 'decimal',
 							value: atts.price,
-							onChange: function (value) { setAttributes({ price: value }); }
+							onChange: function (value) { setAttributes({ price: normPrice(value) }); }
 						}),
 						el(TextControl, {
 							label: __('Reference', 'gvm-wp'),
@@ -239,12 +238,9 @@
 					el(PanelBody, { title: __('Paywall settings', 'gvm-wp'), initialOpen: true },
 						el(TextControl, {
 							label: __('Price', 'gvm-wp'),
-							type: 'number',
-							step: '0.01',
-							min: '0.01',
-							max: String(MAX_PRICE),
+							inputMode: 'decimal',
 							value: atts.price,
-							onChange: function (value) { setAttributes({ price: value }); }
+							onChange: function (value) { setAttributes({ price: normPrice(value) }); }
 						}),
 						el(TextControl, {
 							label: __('File', 'gvm-wp'),
@@ -378,12 +374,9 @@
 				),
 				el(TextControl, {
 					label: __('Price', 'gvm-wp'),
-					type: 'number',
-					step: '0.01',
-					min: '0.01',
-					max: String(MAX_PRICE),
+					inputMode: 'decimal',
 					value: price ? String(price) : '',
-					onChange: function (value) { setMeta(META.price, value); }
+					onChange: function (value) { setMeta(META.price, normPrice(value)); }
 				}),
 				el(SelectControl, {
 					label: __('Hide strategy', 'gvm-wp'),

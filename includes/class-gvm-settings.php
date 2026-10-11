@@ -128,7 +128,61 @@ class Gvm_Settings {
 	 * @return float
 	 */
 	public static function default_price() {
-		return (float) self::get( self::OPTION_DEFAULT_PRICE );
+		$price = self::parse_number( self::get( self::OPTION_DEFAULT_PRICE ) );
+
+		return ( null === $price || $price < self::MIN_PRICE ) ? 0.99 : min( self::MAX_PRICE, $price );
+	}
+
+	/**
+	 * Parse a user-entered amount without range checks (decimal comma or dot).
+	 *
+	 * Accepts "1,15", "1.15", " 1,15 zł", "1,5". Rejects garbage, negatives,
+	 * exponents and thousands separators (more than one separator).
+	 *
+	 * @param mixed $raw Raw input.
+	 * @return float|null Rounded to 2 decimals, or null when not a number.
+	 */
+	public static function parse_number( $raw ) {
+		if ( is_int( $raw ) || is_float( $raw ) ) {
+			return is_finite( (float) $raw ) ? round( (float) $raw, 2 ) : null;
+		}
+		if ( ! is_string( $raw ) ) {
+			return null;
+		}
+		$s = preg_replace( '/[\s\x{00A0}]+/u', '', $raw );
+		$s = preg_replace( '/(zł|zl|pln)$/iu', '', (string) $s );
+		if ( ! preg_match( '/^(\d+)?(?:[.,](\d+))?$/', (string) $s, $m ) || ( '' === ( $m[1] ?? '' ) && '' === ( $m[2] ?? '' ) ) ) {
+			return null;
+		}
+
+		return round( (float) ( ( '' === $m[1] ? '0' : $m[1] ) . '.' . ( $m[2] ?? '0' ) ), 2 );
+	}
+
+	/**
+	 * Canonical price parser: decimal comma or dot, within MIN_PRICE-MAX_PRICE.
+	 *
+	 * @param mixed $raw Raw input.
+	 * @return float|null Rounded to 2 decimals; null when invalid or out of range.
+	 */
+	public static function parse_price( $raw ) {
+		$price = self::parse_number( $raw );
+
+		return ( null === $price || $price < self::MIN_PRICE || $price > self::MAX_PRICE ) ? null : $price;
+	}
+
+	/**
+	 * Normalize a raw price to a dot-decimal string, clamping to the range.
+	 *
+	 * @param mixed $raw Raw input.
+	 * @return string "" when not a positive number.
+	 */
+	public static function normalize_price( $raw ) {
+		$price = self::parse_number( $raw );
+		if ( null === $price || $price <= 0 ) {
+			return '';
+		}
+
+		return number_format( max( self::MIN_PRICE, min( self::MAX_PRICE, $price ) ), 2, '.', '' );
 	}
 
 	/**
@@ -580,9 +634,9 @@ class Gvm_Settings {
 	 * @return string
 	 */
 	public static function sanitize_price( $value ) {
-		$price = (float) wp_unslash( $value );
+		$normalized = self::normalize_price( wp_unslash( $value ) );
 
-		return (string) max( self::MIN_PRICE, min( self::MAX_PRICE, $price ) );
+		return '' === $normalized ? '0.99' : $normalized;
 	}
 
 	/**

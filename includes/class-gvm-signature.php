@@ -46,6 +46,28 @@ class Gvm_Signature {
 	}
 
 	/**
+	 * Signed price token (format v1), verified by gvm-lite on commitment creation.
+	 *
+	 *   "v1." . hex( HMAC-SHA256( "v1|tenant|reference|amountMinor|CURRENCY", $secret ) )
+	 *
+	 * @param string $secret       HMAC key (tenant secret).
+	 * @param string $tenant       Tenant id.
+	 * @param string $reference    Reference id (data-gvm-reference).
+	 * @param int    $amount_minor Amount in integer minor units (1.15 => 115).
+	 * @param string $currency     Currency code (uppercased here).
+	 * @return string Token, or empty string when the secret is empty.
+	 */
+	public static function price_token( $secret, $tenant, $reference, $amount_minor, $currency ) {
+		if ( '' === (string) $secret ) {
+			return '';
+		}
+
+		$message = 'v1|' . $tenant . '|' . $reference . '|' . (int) $amount_minor . '|' . strtoupper( (string) $currency );
+
+		return 'v1.' . hash_hmac( 'sha256', $message, (string) $secret );
+	}
+
+	/**
 	 * Read and sanitize the relevant query params.
 	 *
 	 * @return array
