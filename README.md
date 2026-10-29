@@ -126,22 +126,29 @@ recorded on save and used by the download endpoint. The block defaults to the
 ## Signature verification
 
 After a successful payment, `gvm.js` redirects (or fetches) with the query
-parameters `gvm-status`, `gvm-commitment-id`, `gvm-reference`, `gvm-tenant` and
-`gvm-signature`. The plugin verifies (matching gvm-sdk / gvm backend):
+parameters `gvm-status`, `gvm-commitment-id`, `gvm-reference`, `gvm-tenant`,
+`gvm-signed-at` and `gvm-signature`. The plugin verifies (matching gvm-lite
+`GET /commitment/:id`):
 
 ```php
 $expected = hash_hmac(
 	'sha256',
-	$commitment_id . $tenant . $reference . $status . $secret, // note: secret is appended to the message
+	$commitment_id . $tenant . $reference . $status . $signed_at . $secret, // note: secret is appended to the message
 	$secret
 );
 
 $valid = hash_equals( $expected, $signature );
 ```
 
+`gvm-signed-at` is the server time (unix seconds) at which gvm-lite signed the
+status. The signature is rejected when it is missing, older than **300 s**
+(`Gvm_Signature::MAX_AGE`) or more than **30 s** in the future
+(`Gvm_Signature::MAX_SKEW`, clock skew) — an unlock URL cannot be replayed later.
+Keep the WordPress server clock in sync (NTP).
+
 `[gvm-protected-content]` / redirect / download reveal their content only when
 `Gvm_Signature::verify_query_signature()` returns true, i.e. the signature is
-valid **and** `gvm-status` is `resolved` or `duplicated`.
+valid and fresh **and** `gvm-status` is `resolved` or `duplicated`.
 
 ## Bundling `gvm.js`
 
@@ -172,6 +179,24 @@ The plugin ships with editable default templates (Settings → GetViaMsg):
 - **Paywall** — `templates/paywall.php`, based on `paywall-sticky` (page/post).
 - **Inline** — `templates/inline.php`, based on `paywall-inline` (blocks/shortcodes).
 - **Download** — `templates/download.php` (gated file trigger).
+
+All four are identical to `gvm-sdk-admin/templates/*.html` (without the
+`<template>` wrapper) and follow the GetViaMsg terms (23.10.2026): every one
+shows the § 4 ust. 2 info line with the price and a link to
+<https://getviamsg.com/terms>. Consent is collected **only in the payment
+dialog**: `payment.php` has an unchecked
+`<input type="checkbox" data-gvm-accept-terms data-gvm-accept-terms-version="pl-2026-10-23">`
+with the § 11 ust. 2 consent text, and gvm.js does not create a commitment (no
+QR, no SMS link) until it is ticked. The paywall / inline / download pay buttons
+are not gated; they only open the dialog.
+
+A custom template (Settings → GetViaMsg, or a file returned by the
+`gvm_template_path_{slug}` filter) that contains `data-gvm-bind-qr`,
+`data-gvm-bind-send-sms` or `data-gvm-bind-unlock` must keep both the unchecked
+checkbox and the terms link (`Gvm_Template_Guard`). Otherwise it is not saved /
+not used: the bundled template is rendered instead, the reason is written to the
+PHP error log and shown as an admin notice. Tests: `php tests/template-guard.php`,
+`php tests/signature-vector.php`, `php tests/price-token-vector.php`.
 
 Each template field links to the template gallery at
 <https://templates.getviamsg.com/> for more designs. `./build.sh` also
