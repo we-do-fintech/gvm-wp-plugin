@@ -169,6 +169,48 @@
         outline-offset: 2px;
     }
 
+    .gvm-paywall-notice {
+        display: block;
+
+        margin: 0;
+        padding:
+            12px
+            max(20px, env(safe-area-inset-right), calc((100% - 760px) / 2))
+            10px
+            max(20px, env(safe-area-inset-left), calc((100% - 760px) / 2));
+
+        background: var(--gvm-bg, #fff);
+
+        border-top: 1px solid var(--gvm-border, #d9d9d9);
+
+        box-shadow:
+            0 -4px 16px var(--gvm-shadow-color, rgba(0, 0, 0, 0.08));
+    }
+
+    .gvm-paywall-notice + .gvm-paywall-bar {
+        border-top-color: var(--gvm-border-subtle, #ececec);
+
+        box-shadow: none;
+    }
+
+    .gvm-paywall-info {
+        display: block;
+
+        margin: 0;
+        padding: 0;
+
+        color: var(--gvm-fg-muted, #666);
+
+        font-family: inherit;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .gvm-paywall-info a {
+        color: var(--gvm-fg, #111);
+        text-decoration: underline;
+    }
+
     @media (max-width: 640px) {
         .gvm-paywall-bar {
             justify-content: space-between;
@@ -183,6 +225,18 @@
 
         .gvm-paywall-meta {
             display: none;
+        }
+
+        .gvm-paywall-notice {
+            padding:
+                10px
+                max(14px, env(safe-area-inset-right))
+                8px
+                max(14px, env(safe-area-inset-left));
+        }
+
+        .gvm-paywall-info {
+            font-size: 11px;
         }
 
         .gvm-paywall-copy {
@@ -228,6 +282,16 @@
 </style>
 
 <div class="gvm-paywall-root">
+    <div class="gvm-paywall-notice">
+        <p class="gvm-paywall-info">
+            Dostęp do tej Treści jest odpłatny:
+            <strong><span data-gvm-bind-price></span>&nbsp;<span data-gvm-bind-currency></span></strong>
+            zostanie doliczone do zbiorczego rozliczenia Twojej Sesji.
+            Sublicencja do Treści wygasa z chwilą Płatności. Szczegóły w
+            <a href="https://getviamsg.com/terms" target="_blank" rel="noopener">Regulaminie</a>.
+        </p>
+    </div>
+
     <div class="gvm-paywall-bar">
 
         <div class="gvm-paywall-copy">

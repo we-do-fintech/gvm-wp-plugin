@@ -740,11 +740,14 @@ class Gvm_Render {
 	/**
 	 * Load a template fragment.
 	 *
-	 * For "payment", "paywall" and "download", the admin-defined settings
-	 * template takes precedence; otherwise the bundled file (or a theme
-	 * override via filter) is used.
+	 * For "payment", "paywall", "inline" and "download", the admin-defined
+	 * settings template takes precedence; otherwise the bundled file (or a theme
+	 * override via filter) is used. A settings or filter template that can start
+	 * a commitment but lacks the consent gate (unchecked data-gvm-accept-terms
+	 * checkbox + link to the terms, see Gvm_Template_Guard) is ignored in favour
+	 * of the bundled template and reported in an admin notice.
 	 *
-	 * @param string $slug Template slug (payment|paywall|download).
+	 * @param string $slug Template slug (payment|paywall|inline|download).
 	 * @return string
 	 */
 	public static function template_html( $slug ) {
@@ -762,7 +765,12 @@ class Gvm_Render {
 			}
 
 			if ( '' !== trim( $option ) ) {
-				return $option;
+				$errors = Gvm_Template_Guard::errors( $option );
+				Gvm_Template_Guard::report( $slug, 'settings', $errors );
+				if ( empty( $errors ) ) {
+					return $option;
+				}
+				return self::include_template( GVM_WP_DIR . 'templates/' . $slug . '.php' );
 			}
 		}
 
@@ -771,12 +779,33 @@ class Gvm_Render {
 		/**
 		 * Filter the path of a gvm template fragment.
 		 *
+		 * The resolved template must keep the consent gate (see
+		 * Gvm_Template_Guard); otherwise the bundled template is used.
+		 *
 		 * @param string $default Absolute path.
 		 * @param string $slug    Template slug.
 		 */
 		$file = apply_filters( "gvm_template_path_{$slug}", $default );
 
-		if ( ! is_readable( $file ) ) {
+		if ( $file === $default ) {
+			return self::include_template( $default );
+		}
+
+		$html   = self::include_template( $file );
+		$errors = '' === $html ? array() : Gvm_Template_Guard::errors( $html );
+		Gvm_Template_Guard::report( $slug, 'filter', $errors );
+
+		return empty( $errors ) ? $html : self::include_template( $default );
+	}
+
+	/**
+	 * Render a template file.
+	 *
+	 * @param string $file Absolute path.
+	 * @return string Empty when the file is not readable.
+	 */
+	private static function include_template( $file ) {
+		if ( ! is_string( $file ) || ! is_readable( $file ) ) {
 			return '';
 		}
 

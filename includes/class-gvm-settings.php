@@ -687,7 +687,22 @@ class Gvm_Settings {
 	 * @return string
 	 */
 	public static function sanitize_template_html( $value ) {
-		return trim( (string) wp_unslash( $value ) );
+		$html = trim( (string) wp_unslash( $value ) );
+		if ( '' === $html ) {
+			return '';
+		}
+
+		$errors = Gvm_Template_Guard::errors( $html );
+		if ( ! empty( $errors ) ) {
+			add_settings_error(
+				self::PAGE,
+				'gvm_template_consent',
+				__( 'A template was not saved because it lacks the required consent gate; the bundled template is used instead.', 'gvm-wp' ) . ' ' . implode( ' ', $errors )
+			);
+			return '';
+		}
+
+		return $html;
 	}
 
 	/**
@@ -946,6 +961,7 @@ class Gvm_Settings {
 	 * @return void
 	 */
 	private static function template_gallery_hint() {
+		echo '<p class="description">' . esc_html__( 'Templates with a QR, SMS or unlock element (the payment dialog) must keep an unchecked <input type="checkbox" data-gvm-accept-terms> consent checkbox and a link to https://getviamsg.com/terms (GetViaMsg terms, 23.10.2026). Templates without them are rejected and the bundled template is used.', 'gvm-wp' ) . '</p>';
 		printf(
 			'<p class="description">%1$s <a href="%2$s" target="_blank" rel="noopener noreferrer">%3$s</a> · <a href="%4$s" target="_blank" rel="noopener noreferrer">%5$s</a></p>',
 			esc_html__( 'Looking for inspiration?', 'gvm-wp' ),

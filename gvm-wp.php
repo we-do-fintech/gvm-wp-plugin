@@ -3,7 +3,7 @@
  * Plugin Name:       GVM (GetViaMsg)
  * Plugin URI:        https://github.com/we-do-fintech/gvm-wp-plugin
  * Description:       Integrates GetViaMsg (gvm.js) paywalls into WordPress sites with per-article pricing, templates and server-side signature verification.
- * Version:           0.2.1
+ * Version:           0.3.0
  * Requires at least: 6.3
  * Requires PHP:      7.4
  * Author:            WDFT
@@ -29,7 +29,7 @@ if ( defined( 'GVM_WP_VERSION' ) ) {
 	return;
 }
 
-define( 'GVM_WP_VERSION', '0.2.1' );
+define( 'GVM_WP_VERSION', '0.3.0' );
 define( 'GVM_WP_FILE', __FILE__ );
 define( 'GVM_WP_DIR', plugin_dir_path( __FILE__ ) );
 define( 'GVM_WP_URL', plugin_dir_url( __FILE__ ) );
@@ -39,6 +39,7 @@ require_once GVM_WP_DIR . 'includes/class-gvm-settings.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-categories.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-post.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-signature.php';
+require_once GVM_WP_DIR . 'includes/class-gvm-template-guard.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-render.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-download.php';
 require_once GVM_WP_DIR . 'includes/class-gvm-enqueue.php';
@@ -55,6 +56,7 @@ if ( ! function_exists( 'gvm_init' ) ) {
 	function gvm_init() {
 		Gvm_Settings::init();
 		Gvm_Post::init();
+		Gvm_Template_Guard::init();
 		Gvm_Render::init();
 		Gvm_Download::init();
 		Gvm_Enqueue::init();

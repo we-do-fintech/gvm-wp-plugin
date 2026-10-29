@@ -4,7 +4,7 @@ Tags: paywall, monetization, sms, subscription, content
 Requires at least: 6.3
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.2.1
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -70,6 +70,12 @@ Yes. Run `build.sh vendor /path/to/gvm-sdk/dist/gvm.js` to bundle a copy in
 `assets/gvm.js`, which the plugin then prefers over the CDN.
 
 == Changelog ==
+
+= 0.3.0 =
+* Consent gate (GetViaMsg terms of 23.10.2026): all bundled templates (payment, paywall, inline, download) show the price / paid-access / sublicence info with a link to https://getviamsg.com/terms. The payment dialog adds an unchecked consent checkbox (`data-gvm-accept-terms`, version `pl-2026-10-23`); the QR and SMS button stay blocked until it is ticked. Paywall pay buttons are not gated. Requires a gvm.js / @wdft/gvm-sdk release with consent support.
+* Updated the settlement wording: the payment link arrives by SMS or e-mail after collection ends (after 14 days, above 50 zł, or earlier when ended in the customer portal).
+* Templates from Settings → GetViaMsg or the `gvm_template_path_{slug}` filter that contain a QR / SMS / unlock element but lack the consent checkbox or the terms link are rejected: the bundled template is used, the problem is logged and shown as an admin notice. Re-save or clear customised templates after updating.
+* Signature verification now includes `gvm-signed-at` (payload `commitmentId . tenant . reference . status . signed_at . secret`) and rejects signatures older than 300 s or more than 30 s in the future. Requires a gvm-lite / gvm.js release that sends `gvm-signed-at`; older unlock links no longer verify.
 
 = 0.2.1 =
 * Fix "Cannot redeclare gvm_init()" when a second/left-over copy of the plugin is present.
