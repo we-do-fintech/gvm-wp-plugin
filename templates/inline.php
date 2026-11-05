@@ -146,6 +146,20 @@
         outline-offset: 2px;
     }
 
+    .gvm-paywall-inline__info {
+        margin: 14px 0 0;
+
+        color: var(--gvm-fg-muted, #666);
+
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .gvm-paywall-inline__info a {
+        color: var(--gvm-fg, #111);
+        text-decoration: underline;
+    }
+
     .gvm-paywall-inline__hint {
         margin: 14px 0 0;
 
@@ -234,6 +248,14 @@
             </button>
         </div>
     </div>
+
+    <p class="gvm-paywall-inline__info">
+        Dostęp do tej Treści jest odpłatny:
+        <strong><span data-gvm-bind-price></span>&nbsp;<span data-gvm-bind-currency></span></strong>
+        zostanie doliczone do zbiorczego rozliczenia Twojej Sesji.
+        Sublicencja do Treści wygasa z chwilą Płatności. Szczegóły w
+        <a href="https://getviamsg.com/terms" target="_blank" rel="noopener">Regulaminie</a>.
+    </p>
 
     <p class="gvm-paywall-inline__hint">
         Bez karty · Bez konta · Bez subskrypcji

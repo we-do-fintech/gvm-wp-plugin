@@ -176,10 +176,8 @@
         font-weight: 700;
     }
 
-    .gvm-payment-drawer__qr {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .gvm-payment-drawer__qr-gate {
+        position: relative;
 
         width: var(--gvm-qr-size);
         height: var(--gvm-qr-size);
@@ -191,6 +189,46 @@
         border-radius: var(--gvm-radius, 3px);
 
         overflow: hidden;
+    }
+
+    .gvm-payment-drawer__qr {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 100%;
+        height: 100%;
+
+        transition: filter 0.2s ease;
+    }
+
+    .gvm-payment-drawer__qr-gate.gvm-terms-blocked .gvm-payment-drawer__qr {
+        filter: blur(10px);
+    }
+
+    .gvm-payment-drawer__qr-cover {
+        display: none;
+
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+
+        align-items: center;
+        justify-content: center;
+
+        padding: 16px;
+
+        background: var(--gvm-bg-glass, rgba(255, 255, 255, 0.88));
+        color: var(--gvm-fg, #111);
+
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.4;
+        text-align: center;
+    }
+
+    .gvm-payment-drawer__qr-gate.gvm-terms-blocked .gvm-payment-drawer__qr-cover {
+        display: flex;
     }
 
     .gvm-payment-drawer__qr > * {
@@ -256,6 +294,52 @@
         line-height: 1.5;
     }
 
+    .gvm-payment-drawer__info {
+        margin: 14px 0 0;
+
+        color: var(--gvm-fg-muted, #666);
+
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .gvm-payment-drawer__info a,
+    .gvm-payment-drawer__terms a {
+        color: var(--gvm-fg, #111);
+        text-decoration: underline;
+    }
+
+    .gvm-payment-drawer__terms {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+
+        margin: 10px 0 0;
+
+        color: var(--gvm-fg-3, #444);
+
+        font-size: 12px;
+        line-height: 1.45;
+
+        cursor: pointer;
+    }
+
+    .gvm-payment-drawer__terms input {
+        flex: 0 0 auto;
+
+        width: 16px;
+        height: 16px;
+
+        margin: 1px 0 0;
+
+        accent-color: var(--gvm-accent, #111);
+    }
+
+    .gvm-payment-drawer__terms input.gvm-terms-invalid {
+        outline: 2px solid var(--gvm-danger, #c62828);
+        outline-offset: 2px;
+    }
+
     .gvm-payment-drawer__actions {
         display: grid;
         gap: 8px;
@@ -293,6 +377,14 @@
     .gvm-payment-drawer__send:hover {
         background: var(--gvm-accent-hover, #333);
         border-color: var(--gvm-accent-hover, #333);
+    }
+
+    .gvm-payment-drawer__send.gvm-terms-blocked,
+    .gvm-payment-drawer__send.gvm-terms-blocked:hover {
+        background: var(--gvm-blocked, #777);
+        border-color: var(--gvm-blocked, #777);
+
+        cursor: not-allowed;
     }
 
     .gvm-payment-drawer__cancel {
@@ -353,7 +445,7 @@
         }
 
         /* a phone cannot scan its own screen — SMS is the action */
-        .gvm-payment-drawer__qr,
+        .gvm-payment-drawer__qr-gate,
         .gvm-payment-drawer__qr-hint {
             display: none;
         }
@@ -373,6 +465,10 @@
     @media (prefers-reduced-motion: reduce) {
         .gvm-payment-drawer__qr [aria-busy="true"] {
             animation: none;
+        }
+
+        .gvm-payment-drawer__qr {
+            transition: none;
         }
     }
 </style>
@@ -415,11 +511,17 @@
                 </strong>
             </div>
 
-            <div
-                data-gvm-bind-qr
-                class="gvm-payment-drawer__qr"
-            >
-                <span aria-busy="true"></span>
+            <div class="gvm-payment-drawer__qr-gate gvm-terms-blocked">
+                <div
+                    data-gvm-bind-qr
+                    class="gvm-payment-drawer__qr"
+                >
+                    <span aria-busy="true"></span>
+                </div>
+
+                <div class="gvm-payment-drawer__qr-cover">
+                    Zaznacz zgodę poniżej, aby wyświetlić kod QR.
+                </div>
             </div>
 
             <p class="gvm-payment-drawer__status">
@@ -441,8 +543,26 @@
                 </span>
             </p>
 
+            <p class="gvm-payment-drawer__info">
+                Dostęp do tej Treści jest odpłatny:
+                <strong><span data-gvm-bind-price></span>&nbsp;<span data-gvm-bind-currency></span></strong>
+                zostanie doliczone do zbiorczego rozliczenia Twojej Sesji.
+                Sublicencja do Treści wygasa z chwilą Płatności. Szczegóły w
+                <a href="https://getviamsg.com/terms" target="_blank" rel="noopener">Regulaminie</a>.
+            </p>
+
+            <label class="gvm-payment-drawer__terms">
+                <input
+                    type="checkbox"
+                    data-gvm-accept-terms=".gvm-payment-drawer__qr-gate, [data-gvm-bind-send-sms]"
+                    data-gvm-accept-terms-version="pl-2026-10-23"
+                    data-gvm-accept-terms-label="Zaznacz zgodę, aby kontynuować"
+                />
+                <span>Żądam rozpoczęcia świadczenia przed upływem terminu do odstąpienia od umowy i przyjmuję do wiadomości, że z chwilą udostępnienia Treści tracę prawo odstąpienia od umowy.</span>
+            </label>
+
             <p class="gvm-payment-drawer__promise">
-                Płacisz tylko za odblokowane treści. Rozliczenie zbiorcze i link do płatności otrzymasz SMS-em po zakończeniu sesji (14 dni).
+                Płacisz tylko za odblokowane treści. Link do płatności otrzymasz SMS-em lub e-mailem po zakończeniu zbierania — po 14 dniach, po przekroczeniu 50 zł albo wcześniej, gdy zakończysz je w Portalu klienta.
             </p>
 
             <div class="gvm-payment-drawer__actions">
